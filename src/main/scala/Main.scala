@@ -282,7 +282,8 @@ object Specials:
       )),
       // placeholders until i make custom 3 art
       ("Inkzooka", NamedWeapon("Splatoon", "/specials/s_inkzooka.png")),
-      ("Bubble Blower", NamedWeapon("Splatoon 2", "/specials/s2_bubble_blower.png"))
+      ("Bubble Blower", NamedWeapon("Splatoon 2", "/specials/s2_bubble_blower.png")),
+      ("Sting Ray", NamedWeapon("Splatoon 2", "/specials/s2_sting_ray.png"))
 
     )
 import java.awt.image.BufferedImage;
@@ -438,7 +439,11 @@ object SwingApp:
                 case "" => specialGroup.dropdown.selection.item 
                 case text => text 
               val kit = renderSplooge3(mainName, mainImage, subName, subImage, specialName, specialImage, None)
-              ImageIO.write(kit, "png", File("good.png"))
+              val chooser = FileChooser()
+              val res = chooser.showSaveDialog(me)
+              res match 
+                case FileChooser.Result.Approve => 
+                  ImageIO.write(kit, "png", chooser.selectedFile)
             
           }
         } 
