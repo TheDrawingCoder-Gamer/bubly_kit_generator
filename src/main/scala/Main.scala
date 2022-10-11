@@ -508,7 +508,7 @@ class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap
 }
 import javax.swing.UIManager
 @main def launchApp = 
-  UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+  UIManager.getInstalledLookAndFeels().find(it => it.getName() == "GTK+").foreach(it => UIManager.setLookAndFeel(it.getClassName()))
   val window = SwingApp.top
   window.centerOnScreen()
   window.open()
