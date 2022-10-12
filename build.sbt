@@ -5,7 +5,8 @@ lazy val root = project
   .settings(
     name := "splooge3",
     version := "0.1.0-SNAPSHOT",
-
+    scalacOptions += "-old-syntax",
+    scalacOptions += "-no-indent",
     scalaVersion := scala3Version,
     Compile / run / fork := true,
     libraryDependencies += "org.scalameta" %% "munit" % "0.7.29" % Test,

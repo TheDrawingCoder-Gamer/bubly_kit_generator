@@ -1,29 +1,28 @@
 
 
+import collection.immutable.ListMap
 import javax.imageio.ImageIO;
 import java.io.File;
 case class ItemLocation(val path : String, val internal : Boolean) {
   def asBufferedImage = 
-    if internal then 
+    if (internal) 
       ImageIO.read(this.getClass.getResourceAsStream(path))
     else 
       ImageIO.read(File(path))
 }
-case class Weapon(primary : (String, String), val styles : Map[String, String]): 
-  def keys =
-    daMap.keys
-  lazy val daMap = styles + primary
-  def primaryKey = primary._1 
-  def primaryLoc = primary._2 
-def AWeapon(primary : (String, String), contents : (String, String)*) = Weapon(primary, Map(contents:_*))
+case class Weapon(val styles : ListMap[String, String]) { 
+  def primaryKey = styles.head._1 
+  def primaryLoc = styles.head._2 
+}
+def AWeapon(contents : (String, String)*) = Weapon(ListMap(contents:_*))
 def SimpleWeapon(loc : String) = 
-  Weapon(("Splatoon 3", loc), Map())
+  Weapon(ListMap(("Splatoon 3", loc)))
 def NamedWeapon(name : String, loc : String) = 
-  Weapon((name, loc), Map())
+  Weapon(ListMap((name, loc)))
 def Resource(path : String) = ItemLocation(path, true)
 
-object Mains: 
-  val weapons = Map(
+object Mains { 
+  val weapons = ListMap(
     ("52 Gal", SimpleWeapon("/weapons/s3_52gal.png")),
     ("96 Gal", SimpleWeapon("/weapons/s3_96gal.png")),
     ("Aerospray", SimpleWeapon("/weapons/s3_aerospray.png")),
@@ -93,7 +92,8 @@ object Mains:
     ("Splattershot", AWeapon(
       ("Splatoon 3", "/weapons/s3_splattershot.png"),
       ("Kensa Splattershot", "/weapons/s3_kensa_splattershot.png"),
-      ("Heroshot", "/weapons/s3_heroshot.png")
+      ("Heroshot", "/weapons/s3_heroshot.png"),
+      ("Splatoon 2 2D", "/weapons/s2_splattershot_2d.png")
     )),
     ("Splattershot Jr.", SimpleWeapon("/weapons/s3_splattershot_jr.png")),
     ("Splattershot Pro", SimpleWeapon("/weapons/s3_splattershot_pro.png")),
@@ -109,10 +109,11 @@ object Mains:
       )),
     ("Undercover Brella", SimpleWeapon("/weapons/s3_undercover_brella.png"))
   )
+}
 
 
-object Subs: 
-  val weapons = Map( 
+object Subs { 
+  val weapons = ListMap( 
     ("Angle Shooter", SimpleWeapon("/sub/s3_angle_shooter.png")),
     ("Autobomb", AWeapon(
       ("Splatoon 3", "/sub/s3_autobomb.png"),
@@ -181,8 +182,9 @@ object Subs:
       ("Splatoon", "/sub/s_seeker.png")
     ))
     )
-object Specials:
-  val weapons = Map(
+}
+object Specials {
+  val weapons = ListMap(
       ("Big Bubbler", SimpleWeapon("/specials/s3_big_bubbler.png")),
       ("Booyah Bomb", AWeapon(
         ("Splatoon 3", "/specials/s3_booyah_bomb.png"),
@@ -286,6 +288,7 @@ object Specials:
       ("Sting Ray", NamedWeapon("Splatoon 2", "/specials/s2_sting_ray.png"))
 
     )
+}
 import java.awt.image.BufferedImage;
 import java.awt.image.FilteredImageSource;
 import java.awt.Graphics2D
@@ -296,7 +299,7 @@ import java.awt.AlphaComposite
 import java.awt.geom.AffineTransform
 import javax.swing.GrayFilter 
 
-def renderSplooge3(mainName : String, mainImage : BufferedImage, subName : String, subImage : BufferedImage, specialName : String, specialImage : BufferedImage, specialPoints : Option[String])  =
+def renderSplooge3(mainName : String, mainImage : BufferedImage, subName : String, subImage : BufferedImage, specialName : String, specialImage : BufferedImage, specialPoints : Option[String])  = {
   val canvas = BufferedImage(686,507, BufferedImage.TYPE_INT_ARGB); 
   val g = canvas.createGraphics()
   val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s3_kit_backdrop.png"))
@@ -330,21 +333,23 @@ def renderSplooge3(mainName : String, mainImage : BufferedImage, subName : Strin
   val subFontX = subSpecialX + 75
   g.drawString(subName, subFontX, subY + fm2.getAscent())
   g.drawString(specialName, subFontX, specialY + fm2.getAscent())
-  specialPoints match 
+  specialPoints match { 
     case Some(p) =>
       g.setFont(pointsFont)
       val pointsAscent = g.getFontMetrics().getAscent()
       g.drawString(p + "p", 475, 320 + pointsAscent)
     case None => ()
+  }
   g.dispose()
   canvas
+}
 class ComboModel[A] extends javax.swing.DefaultComboBoxModel[A] {
   def +=(elem: A) =  addElement(elem)
   def ++=(elems: TraversableOnce[A]) =  elems.foreach(addElement) 
 }
 import scala.swing.* 
 import java.awt.Dimension
-object SwingApp: 
+object SwingApp { 
   def top = new MainFrame {
     private val me = this
     title = "Bubly Kit Generator"
@@ -355,20 +360,21 @@ object SwingApp:
         val subGroup = WeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),"Sub", Subs.weapons) 
         val specialGroup = WeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),"Special", Specials.weapons)
         def revertMainImage() =
-          mainGroup.image = Resource(Mains.weapons.get(mainGroup.dropdown.selection.item).get.daMap.get(mainGroup.styleDropdown.selection.item).get).asBufferedImage
+          mainGroup.image = Resource(Mains.weapons.get(mainGroup.dropdown.selection.item).get.styles.get(mainGroup.styleDropdown.selection.item).get).asBufferedImage
         def revertSubImage() = 
-          subGroup.image = Resource(Subs.weapons.get(subGroup.dropdown.selection.item).get.daMap.get(subGroup.styleDropdown.selection.item).get).asBufferedImage
+          subGroup.image = Resource(Subs.weapons.get(subGroup.dropdown.selection.item).get.styles.get(subGroup.styleDropdown.selection.item).get).asBufferedImage
         def revertSpecialImage() = 
-          specialGroup.image = Resource(Specials.weapons.get(specialGroup.dropdown.selection.item).get.daMap.get(specialGroup.styleDropdown.selection.item).get).asBufferedImage
+          specialGroup.image = Resource(Specials.weapons.get(specialGroup.dropdown.selection.item).get.styles.get(specialGroup.styleDropdown.selection.item).get).asBufferedImage
         val selectMainImage = new Button("Select Main Image") {
           reactions += {
             case event.ButtonClicked(_) => 
               val chooser = FileChooser()
               val res = chooser.showOpenDialog(me)
-              res match 
+              res match { 
                 case FileChooser.Result.Approve => 
                   val image = ImageIO.read(chooser.selectedFile)
                   mainGroup.image = image
+              }
 
 
           }
@@ -378,10 +384,11 @@ object SwingApp:
             case event.ButtonClicked(_) => 
               val chooser = FileChooser()
               val res = chooser.showOpenDialog(me)
-              res match 
+              res match { 
                 case FileChooser.Result.Approve => 
                   val image = ImageIO.read(chooser.selectedFile)
                   subGroup.image = image 
+              }
 
 
           }
@@ -391,10 +398,11 @@ object SwingApp:
             case event.ButtonClicked(_) => 
               val chooser = FileChooser()
               val res = chooser.showOpenDialog(me)
-              res match 
+              res match { 
                 case FileChooser.Result.Approve => 
                   val image = ImageIO.read(chooser.selectedFile)
                   specialGroup.image = image
+              }
 
 
           }
@@ -427,23 +435,27 @@ object SwingApp:
           reactions += {
             case event.ButtonClicked(_) => 
               val mainImage = mainGroup.image
-              val mainName = mainGroup.textField.text match 
+              val mainName = mainGroup.textField.text match { 
                 case "" => mainGroup.dropdown.selection.item
                 case text => text
+              }
               val subImage = subGroup.image 
-              val subName = subGroup.textField.text match 
+              val subName = subGroup.textField.text match { 
                 case "" => subGroup.dropdown.selection.item 
                 case text => text
+              }
               val specialImage = specialGroup.image 
-              val specialName = specialGroup.textField.text match 
+              val specialName = specialGroup.textField.text match { 
                 case "" => specialGroup.dropdown.selection.item 
                 case text => text 
+              }
               val kit = renderSplooge3(mainName, mainImage, subName, subImage, specialName, specialImage, None)
               val chooser = FileChooser()
               val res = chooser.showSaveDialog(me)
-              res match 
+              res match { 
                 case FileChooser.Result.Approve => 
                   ImageIO.write(kit, "png", chooser.selectedFile)
+              }
             
           }
         } 
@@ -451,6 +463,7 @@ object SwingApp:
       }
     }
   }
+}
 
    
     
@@ -468,12 +481,13 @@ class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap
   val styleDropdown = new ComboBox[String](Seq()) {
     selection.reactions += {
       case event.SelectionChanged(_) =>
-        if this.selection.item == null then 
+        if (this.selection.item == null) 
           ()
-        else
+        else {
           val weapon = weaponsMap.get(dropdown.selection.item).get
-          val goodThing = weapon.daMap.get(this.selection.item).get 
+          val goodThing = weapon.styles.get(this.selection.item).get 
           image = Resource(goodThing).asBufferedImage
+        }
     }
   }
   styleDropdown.peer.setModel(styleModel)
@@ -482,9 +496,9 @@ class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap
     selection.reactions += {
       case event.SelectionChanged(_) => 
         val weapon = weaponsMap.get(this.selection.item).get
-        image = Resource(weapon.primary._2).asBufferedImage 
+        image = Resource(weapon.primaryLoc).asBufferedImage 
         styleModel.removeAllElements()
-        styleModel ++=  weapon.keys
+        styleModel ++=  weapon.styles.keys
         styleDropdown.selection.item = weapon.primaryKey
     }
   }
@@ -493,7 +507,7 @@ class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap
   contents += FlowPanel(imagelabel, dropdown, styleDropdown)
   def textField = labeledField.textField
   def image = daimage
-  def image_=(i : BufferedImage) =
+  def image_=(i : BufferedImage) = {
     daimage = i
     val editedImage = BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB)
     val g = editedImage.createGraphics()
@@ -503,13 +517,15 @@ class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap
     g.drawImage(i, 0, 0, 64, 64, null)
     g.dispose()
     imagelabel.icon = ImageIcon(editedImage)
+  }
 
 
 }
 import javax.swing.UIManager
-@main def launchApp = 
+@main def launchApp = { 
   UIManager.getInstalledLookAndFeels().find(it => it.getName() == "GTK+").foreach(it => UIManager.setLookAndFeel(it.getClassName()))
   val window = SwingApp.top
   window.centerOnScreen()
   window.open()
+}
  
