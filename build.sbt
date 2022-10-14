@@ -10,5 +10,9 @@ lazy val root = project
     scalaVersion := scala3Version,
     Compile / run / fork := true,
     libraryDependencies += "org.scalameta" %% "munit" % "0.7.29" % Test,
-    libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "3.0.0"
+    libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "3.0.0",
+    libraryDependencies += "org.apache.xmlgraphics" % "batik" % "1.15",
+    libraryDependencies += "org.apache.xmlgraphics" % "batik-swing" % "1.15",
+    libraryDependencies += "org.apache.xmlgraphics" % "batik-transcoder" % "1.15",
+    libraryDependencies += "com.google.jimfs" % "jimfs" % "1.2"
   )

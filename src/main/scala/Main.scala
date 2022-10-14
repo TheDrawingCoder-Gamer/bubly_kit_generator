@@ -10,282 +10,465 @@ case class ItemLocation(val path : String, val internal : Boolean) {
     else 
       ImageIO.read(File(path))
 }
-case class Weapon(val styles : ListMap[String, String]) { 
-  def primaryKey = styles.head._1 
-  def primaryLoc = styles.head._2 
+enum Game(val name : String, val longName : String) {
+  case Splatoon1 extends Game("s", "Splatoon")
+  case Splatoon2 extends Game("s2", "Splatoon 2")
+  case Splatoon3 extends Game("s3", "Splatoon 3")
+  
 }
-def AWeapon(contents : (String, String)*) = Weapon(ListMap(contents:_*))
-def SimpleWeapon(loc : String) = 
-  Weapon(ListMap(("Splatoon 3", loc)))
-def NamedWeapon(name : String, loc : String) = 
-  Weapon(ListMap((name, loc)))
+object Game {
+  def fromName(name : String) = {
+    name match {
+      case "s" => Some(Splatoon1)
+      case "s2" => Some(Splatoon2)
+      case "s3" => Some(Splatoon3)
+      case _ => None
+    }
+  }
+  def fromLongName(name : String) = {
+    name match {
+      case "Splatoon" => Some(Splatoon1)
+      case "Splatoon 2" => Some(Splatoon2)
+      case "Splatoon 3" => Some(Splatoon3)
+      case _ => None
+    }
+  }
+}
+
+case class WeaponStyle(val game : Game, val name : String)
+case class AWeapon(val styles : Seq[WeaponStyle])
+case class Weapon(val rootPath : String,val name : String, val styles : Seq[WeaponStyle]) { 
+  def path(style : WeaponStyle, twodim : Boolean) : ItemLocation = {
+    val daName = name.replace(' ', '_').toLowerCase()
+    val gStyle = style.name.trim().replace(' ', '_').toLowerCase()
+    val gamePrefix = style.game.name
+    val (noDimPath, goodPath) = {
+      val firstPath = 
+        if (gStyle == "") {
+          gamePrefix + "_" + daName 
+        } else {
+          gamePrefix + "_" + gStyle + "_" + daName 
+        }
+      (s"$rootPath/$firstPath.png", s"$rootPath/${firstPath}_2d.png")
+    }
+    val daPath =
+      if (twodim) {
+        if (this.getClass.getResource(goodPath) == null) {
+          noDimPath 
+        } else {
+          goodPath
+        }
+      } else {
+        if (this.getClass.getResource(noDimPath) == null) {
+          goodPath 
+        } else {
+          noDimPath
+        }
+      }
+    Resource(daPath) 
+  }
+}
+
+
+
+def MapToWeapon(daMap : Map[String, AWeapon], root : String) : Map[String, Weapon] = 
+  ListMap.from(for ((k, AWeapon(styles)) <- daMap) yield {
+    (k, Weapon(root, k, styles))
+  })
+// def ComplexWeapon(defGame : Game, styles : (String, Game)*) = AWeapon(Seq(styles:_*).map((a, b) => WeaponStyle(b, a)).prepended(WeaponStyle(defGame, "")))
+def ComplexWeapon(styles : Seq[(String, Game)]*) = 
+  AWeapon(Seq.concat(styles:_*).map( (a, b) => WeaponStyle(b, a)))
+def SimpleWeapon(game : Game) = AWeapon(Seq(WeaponStyle(game, "")))
+def Simple3Weapon = SimpleWeapon(Game.Splatoon3)
+def WeaponList(root : String, contents : (String, AWeapon)*) = 
+  MapToWeapon(ListMap(contents:_*), root)
 def Resource(path : String) = ItemLocation(path, true)
 
+case class OtherWeapon(root : String, name : String, games : Seq[Game])
+def OtherWeaponList(root : String, contents : (String, Seq[Game])*) : NonMainWeaponList = 
+  ListMap.from(Seq(contents:_*).map((k, v) => (k, OtherWeapon(root, k, v))))
+def DefStyles(games : Game*) = 
+  games.map(game => ("", game))
+def Style(name : String, games : Game*) = 
+  games.map(game => (name, game))
+
+type NonMainWeaponList = Map[String, OtherWeapon]
 object Mains { 
-  val weapons = ListMap(
-    ("52 Gal", SimpleWeapon("/weapons/s3_52gal.png")),
-    ("96 Gal", SimpleWeapon("/weapons/s3_96gal.png")),
-    ("Aerospray", SimpleWeapon("/weapons/s3_aerospray.png")),
-    ("Ballpoint Splatling", SimpleWeapon("/weapons/s3_ballpoint_splatling.png")),
-    ("Bamboozler 14", AWeapon(
-      ("Splatoon 3", "/weapons/s3_bamboozler_14.png"),
-      ("Grizzco", "/weapons/s3_grizzco_bamboozler_14.png"),
-      )),
-    ("Blaster", AWeapon(
-      ("Splatoon 3", "/weapons/s3_blaster.png"),
-      ("Grizzco", "/weapons/s3_grizzco_blaster.png")
+  import Game.*
+  def allGamesDefStyle = DefStyles(Splatoon3, Splatoon2, Splatoon1)
+  def allGames(style : String) = Style(style, Splatoon3, Splatoon2, Splatoon1)
+  def oldGames(style : String) = Style(style, Splatoon2, Splatoon1)
+  def newGames(style : String) = Style(style, Splatoon3, Splatoon2)
+  val heroWeapon = Style("Hero", Splatoon2)
+  val splatcharger = ComplexWeapon(
+      allGames(""),
+      oldGames("Hero"),
+      Style("Kelp", Splatoon1),
+      Style("Firefin", Splatoon2),
+      Style("Kensa", Splatoon2),
+      Style("Sheldon's Picks", Splatoon1)
+    )
+  val weapons = WeaponList("weapons",
+    ("52 Gal", ComplexWeapon(
+      allGamesDefStyle,
+      oldGames("Deco")
     )),
-    ("Bloblobber", SimpleWeapon("/weapons/s3_bloblobber.png")),
-    ("Carbon Roller", SimpleWeapon("/weapons/s3_carbon_roller.png")),
-    ("Clash Blaster", SimpleWeapon("/weapons/s3_clash_blaster.png")),
-    ("Dapple Dualies", SimpleWeapon("/weapons/s3_dapple_dualies.png")),
-    ("Dualie Squelchers", SimpleWeapon("/weapons/s3_dualie_squelchers.png")),
-    ("Dynamo Roller", SimpleWeapon("/weapons/s3_dynamo_roller.png")),
-    ("E-Liter 4K", SimpleWeapon("/weapons/s3_e-liter.png")),
-    ("E-Liter 4K Scope", SimpleWeapon("/weapons/s3_e-liter_scope.png")),
-    ("Explosher", SimpleWeapon("/weapons/s3_explosher.png")),
-    ("Flingza Roller", SimpleWeapon("/weapons/s3_flingza_roller.png")),
-    ("Glooga Dualies", SimpleWeapon("/weapons/s3_glooga_dualies.png")),
-    ("Goo Tuber", SimpleWeapon("/weapons/s3_goo_tuber.png")),
-    ("H-3 Nozzlenose", SimpleWeapon("/weapons/s3_h-3_nozzlenose.png")),
-    ("Heavy Splatling", SimpleWeapon("/weapons/s3_heavy_splatling.png")),
-    ("Hydra Splatling", SimpleWeapon("/weapons/s3_hydra_splatling.png")),
-    ("Inkbrush", SimpleWeapon("/weapons/s3_inkbrush.png")),
-    ("Jet Squelcher", SimpleWeapon("/weapons/s3_jet_squelcher.png")),
-    ("L-3 Nozzlenose", SimpleWeapon("/weapons/s3_l-3_nozzlenose.png")),
-    ("Luna Blaster", SimpleWeapon("/weapons/s3_luna_blaster.png")),
-    ("Mini Splatling", SimpleWeapon("/weapons/s3_mini_splatling.png")),
-    ("N-Zap", AWeapon(
-      ("Splatoon 3", "/weapons/s3_n-zap.png"),
-      ("N-Zap 89", "/weapons/s3_n-zap_89.png"),
-      ("N-Zap 83", "/weapons/s3_n-zap_83.png")
+    ("96 Gal", ComplexWeapon(
+      allGamesDefStyle,
+      oldGames("Deco")
+    )),
+    ("Aerospray", ComplexWeapon(
+      allGamesDefStyle, 
+      oldGames("Gold"),
+      oldGames("Sheldon's Picks")
+    )),
+    ("Ballpoint Splatling", ComplexWeapon(
+      newGames(""), 
+      Style("Nouveau", Splatoon2)
+    )),
+    ("Bamboozler 14", ComplexWeapon(
+      allGames(""),
+      newGames("Grizzco"),
+      oldGames("Cuttlegear"),
+      oldGames("Sheldon's Picks")
+      )),
+    ("Blaster", ComplexWeapon(
+      allGames(""),
+      newGames("Grizzco"),
+      heroWeapon
+    )),
+    ("Bloblobber", ComplexWeapon(
+      newGames(""),
+      Style("Deco", Splatoon2)
+    )),
+    ("Carbon Roller", ComplexWeapon(
+      allGames(""),
+      oldGames("Deco")
+    )),
+    ("Clash Blaster", ComplexWeapon(
+      newGames(""),
+      Style("Neo", Splatoon2)
+    )),
+    ("Dapple Dualies", ComplexWeapon(
+      newGames(""),
+      Style("Nouveau", Splatoon2),
+      Style("Sheldon's Picks", Splatoon2)
+    )),
+    ("Dualie Squelchers", ComplexWeapon(
+      newGames(""),
+      Style("Custom", Splatoon2)
+    )),
+    ("Dynamo Roller", ComplexWeapon(
+      allGames(""),
+      oldGames("Gold"),
+      Style("Kensa", Splatoon2),
+      Style("Sheldon's Picks", Splatoon1)
+    )),
+    ("E-Liter", ComplexWeapon(
+      allGames(""),
+      oldGames("Custom")
+    )),
+    ("E-Liter Scope", ComplexWeapon(
+      allGames(""),
+      oldGames("Custom")
+    )),
+    ("Explosher", ComplexWeapon(
+      newGames(""),
+      Style("Custom", Splatoon2)
+    )),
+    ("Flingza Roller", ComplexWeapon(
+      newGames(""),
+      Style("Foil", Splatoon2)
+    )),
+    ("Glooga Dualies", ComplexWeapon(
+      DefStyles(Splatoon3, Splatoon2),
+      Style("Deco",Splatoon3, Splatoon2),
+      Style("Kensa", Splatoon2)
+    )),
+    ("Goo Tuber", ComplexWeapon(
+      newGames(""),
+      Style("Custom", Splatoon2)
+    )),
+    ("H-3 Nozzlenose", ComplexWeapon(
+      allGames(""),
+      oldGames("D")
+    )),
+    ("Heavy Splatling", ComplexWeapon(
+      allGames(""),
+      oldGames("Deco"),
+      oldGames("Sheldon's Picks"),
+      heroWeapon
+    )),
+    ("Hydra Splatling", ComplexWeapon(
+      allGames(""),
+      oldGames("Custom"),
+    )),
+    ("Inkbrush", ComplexWeapon(
+      allGames(""),
+      oldGames("Nouveau"),
+      oldGames("Sheldon's Picks")
+    )),
+    ("Jet Squelcher", ComplexWeapon(
+      allGames(""),
+      oldGames("Custom")
+    )),
+    ("L-3 Nozzlenose", ComplexWeapon(
+      allGames(""),
+      oldGames("D")
+    )),
+    ("Luna Blaster", ComplexWeapon(
+      allGames(""),
+      oldGames("Neo")
+    )),
+    ("Mini Splatling", ComplexWeapon(
+      allGames(""),
+      oldGames("Zink"),
+      Style("Kensa", Splatoon2)
+    )),
+    ("N-Zap", ComplexWeapon(
+      DefStyles(Splatoon3, Splatoon2, Splatoon1),
+      Style("89", Splatoon3, Splatoon2, Splatoon1),
+      Style("Sheldon's Picks", Splatoon3, Splatoon2, Splatoon1)
     )
     ),
-    ("Nautilus", SimpleWeapon("/weapons/s3_nautilus.png")),
-    ("Octobrush", SimpleWeapon("/weapons/s3_octobrush.png")),
-    ("Range Blaster", AWeapon(
-      ("Splatoon 3", "/weapons/s3_range_blaster.png"),
-      ("Grim Range Blaster", "/weapons/s3_grim_range_blaster.png")
+    ("Nautilus", ComplexWeapon(
+      newGames(""),
+      Style("Gold", Splatoon2)
     )),
-    ("Rapid Blaster", SimpleWeapon("/weapons/s3_rapid_blaster.png")),
-    ("Rapid Blaster Pro", SimpleWeapon("/weapons/s3_rapid_blaster_pro.png")),
-    ("REEF-LUX 450", SimpleWeapon("/weapons/s3_reef-lux_450.png")),
-    ("Slosher", SimpleWeapon("/weapons/s3_slosher.png")),
-    ("Sloshing Machine", AWeapon(
-      ("Splatoon 3", "/weapons/s3_sloshing_machine.png"),
-      ("Grizzco", "/weapons/s3_grizzco_sloshing_machine.png")
+    ("Octobrush", ComplexWeapon(
+      allGames(""),
+      oldGames("Nouveau"),
+      heroWeapon
     )),
-    ("Splash-o-matic", SimpleWeapon("/weapons/s3_splash-o-matic.png")),
-    ("Splat Brella", AWeapon(
-      ("Splatoon 3", "/weapons/s3_splat_brella.png"),
-      ("Grizzco", "/weapons/s3_grizzco_splat_brella.png")
-      )),
-    ("Splat Charger", SimpleWeapon("/weapons/s3_splat_charger.png")),
-    ("Splat Dualies", AWeapon(
-      ("Splatoon 3", "/weapons/s3_splat_dualies.png"),
-      ("Kensa Dualies", "/weapons/s3_kensa_dualies.png")
-      )),
-    ("Splat Roller", SimpleWeapon("/weapons/s3_splat_roller.png")),
-    ("Splatana Stamper", SimpleWeapon("/weapons/s3_splatana_stamper.png")),
-    ("Splatana Wiper", SimpleWeapon("/weapons/s3_splatana_wiper.png")),
-    ("Splatterscope", SimpleWeapon("/weapons/s3_splatterscope.png")),
-    ("Splattershot", AWeapon(
-      ("Splatoon 3", "/weapons/s3_splattershot.png"),
-      ("Kensa Splattershot", "/weapons/s3_kensa_splattershot.png"),
-      ("Heroshot", "/weapons/s3_heroshot.png"),
-      ("Splatoon 2 2D", "/weapons/s2_splattershot_2d.png")
+    ("Range Blaster", ComplexWeapon(
+      DefStyles(Splatoon3, Splatoon2, Splatoon1),
+      allGames("Sheldon's Picks")
     )),
-    ("Splattershot Jr.", SimpleWeapon("/weapons/s3_splattershot_jr.png")),
-    ("Splattershot Pro", SimpleWeapon("/weapons/s3_splattershot_pro.png")),
-    ("Sploosh-o-matic", SimpleWeapon("/weapons/s3_sploosh-o-matic.png")),
-    ("Squeezer", SimpleWeapon("/weapons/s3_squeezer.png")),
-    ("Squiffer", SimpleWeapon("/weapons/s3_squiffer.png")),
-    ("Tenta Brella", SimpleWeapon("/weapons/s3_tenta_brella.png")),
-    ("Tetra Dualies", SimpleWeapon("/weapons/s3_tetra_dualies.png")),
-    ("Tri-Slosher", SimpleWeapon("/weapons/s3_tri-slosher.png")),
-    ("Tri-Stringer", AWeapon(
-      ("Splatoon 3", "/weapons/s3_tri-stringer.png"),
-      ("Grizzco", "/weapons/s3_grizzco_tri-stringer.png")
+    ("Rapid Blaster", ComplexWeapon(
+      allGames(""),
+      oldGames("Deco")
+    )),
+    ("Rapid Blaster Pro", ComplexWeapon(
+      allGames(""),
+      oldGames("Deco")
+    )),
+    ("REEF-LUX 450", Simple3Weapon),
+    ("Slosher", ComplexWeapon(
+      allGames(""),
+      oldGames("Deco"),
+      heroWeapon
+    )),
+    ("Sloshing Machine", ComplexWeapon(
+      DefStyles(Splatoon3, Splatoon2, Splatoon1),
+      Style("Grizzco", Splatoon3, Splatoon2),
+      oldGames("Neo"),
+      Style("Kensa", Splatoon2)
+    )),
+    ("Splash-o-matic", ComplexWeapon(
+      allGames(""),
+      allGames("Neo")
+    )),
+    ("Splat Brella", ComplexWeapon(
+      DefStyles(Splatoon3, Splatoon2),
+      Style("Grizzco", Splatoon3, Splatoon2),
+      Style("Sorella", Splatoon2),
+      heroWeapon
+    )),
+    ("Splat Charger", ComplexWeapon(
+      allGames(""),
+      oldGames("Hero"),
+      Style("Kelp", Splatoon1),
+      Style("Firefin", Splatoon2),
+      Style("Kensa", Splatoon2),
+      Style("Sheldon's Picks", Splatoon1)
+    )
+    ),
+    ("Splat Dualies", ComplexWeapon(
+      DefStyles(Splatoon3, Splatoon2),
+      Style("Kensa", Splatoon3, Splatoon2),
+      heroWeapon
       )),
-    ("Undercover Brella", SimpleWeapon("/weapons/s3_undercover_brella.png"))
+    ("Splat Roller", ComplexWeapon(
+      allGames(""),
+      oldGames("Hero"),
+      oldGames("Krak-on"),
+      Style("Sheldon's Picks", Splatoon1),
+      Style("Kensa", Splatoon2)
+    )),
+    ("Splatana Stamper", Simple3Weapon),
+    ("Splatana Wiper", Simple3Weapon),
+    ("Splatterscope", ComplexWeapon(
+      allGames(""),
+      Style("Kelp", Splatoon1),
+      Style("Firefin", Splatoon2),
+      Style("Kensa", Splatoon2),
+      Style("Sheldon's Picks", Splatoon1)
+    )
+    ),
+    ("Splattershot", ComplexWeapon(
+      DefStyles(Splatoon3, Splatoon2, Splatoon1),
+      Style("Kensa", Splatoon2),
+      allGames("Hero"),
+      Style("Sheldon's Picks", Splatoon1),
+      oldGames("Tentatek")
+    )),
+    ("Splattershot Jr", ComplexWeapon(
+      allGames(""),
+      oldGames("Custom"),
+      Style("Kensa", Splatoon2)
+    )),
+    ("Splattershot Pro", ComplexWeapon(
+      allGames(""),
+      oldGames("Forge"),
+      Style("Kensa", Splatoon2),
+      Style("Sheldon's Picks", Splatoon1)
+    )),
+    ("Sploosh-o-matic", ComplexWeapon(
+      allGames(""),
+      oldGames("Neo"),
+
+    )),
+    ("Squeezer", ComplexWeapon(
+      newGames(""),
+      Style("Foil", Splatoon2)
+    )),
+    ("Squiffer", ComplexWeapon(
+      allGames(""),
+      oldGames("New"),
+      oldGames("Sheldon's Picks")
+    )),
+    ("Tenta Brella", ComplexWeapon(
+      newGames(""),
+      Style("Sorella", Splatoon2),
+      Style("Sheldon's Picks", Splatoon2)
+    )),
+    ("Tetra Dualies", ComplexWeapon(
+      newGames(""),
+      Style("Tentatek", Splatoon2)
+    )),
+    ("Tri-Slosher", ComplexWeapon(
+      allGames(""),
+      oldGames("Nouveau"),
+
+    )),
+    ("Tri-Stringer", ComplexWeapon(
+      DefStyles(Splatoon3),
+      Style("Grizzco", Splatoon3)
+      )),
+    ("Undercover Brella", ComplexWeapon(
+      newGames(""),
+      Style("Sorella", Splatoon2),
+      Style("Kensa", Splatoon2)
+    ))
   )
 }
 
 
-object Subs { 
-  val weapons = ListMap( 
-    ("Angle Shooter", SimpleWeapon("/sub/s3_angle_shooter.png")),
-    ("Autobomb", AWeapon(
-      ("Splatoon 3", "/sub/s3_autobomb.png"),
-      ("Splatoon 2", "/sub/s2_autobomb.png")
-    )),
-    ("Burst Bomb", AWeapon(
-      ("Splatoon 3", "/sub/s3_burst_bomb.png"),
-      ("Splatoon 2", "/sub/s2_burst_bomb.png"),
-      ("Splatoon", "/sub/s_burst_bomb.png")
-    )),
-    ("Curling Bomb", AWeapon(
-      ("Splatoon 3", "/sub/s3_curling_bomb.png"),
-      ("Splatoon 2", "/sub/s2_curling_bomb.png")
-    )),
-    ("Fizzy Bomb", AWeapon(
-      ("Splatoon 3", "/sub/s3_fizzy_bomb.png"),
-      ("Splatoon 2", "/sub/s2_fizzy_bomb.png")
-    )),
-    ("Ink Mine", AWeapon(
-      ("Splatoon 3", "/sub/s3_ink_mine.png"),
-      ("Splatoon 2", "/sub/s2_ink_mine.png"),
-      ("Splatoon", "/sub/s_ink_mine.png")
-    )),
-    ("Point Sensor", AWeapon(
-      ("Splatoon 3", "/sub/s3_point_sensor.png"),
-      ("Splatoon 2", "/sub/s2_point_sensor.png"),
-      ("Splatoon", "/sub/s_point_sensor.png")
-    )),
-    ("Smallfry", SimpleWeapon("/sub/s3_smallfry.png")),
-    ("Splash Wall", AWeapon(
-      ("Splatoon 3", "/sub/s3_splash_wall.png"),
-      ("Splatoon 2", "/sub/s2_splash_wall.png"),
-      ("Splatoon", "/sub/s_splash_wall.png")
-    )),
-    ("Splat Bomb", AWeapon(
-      ("Splatoon 3", "/sub/s3_splat_bomb.png"),
-      ("Splatoon 2", "/sub/s2_splat_bomb.png"),
-      ("Splatoon", "/sub/s_splat_bomb.png")
-    )), 
-    ("Sprinkler", AWeapon(
-      ("Splatoon 3", "/sub/s3_sprinkler.png"),
-      ("Splatoon 2", "/sub/s2_sprinkler.png"),
-      ("Splatoon", "/sub/s_sprinkler.png")
-    )),
-    ("Squid Beakon", AWeapon(
-      ("Splatoon 3", "/sub/s3_squid_beakon.png"),
-      ("Splatoon 2", "/sub/s2_squid_beakon.png"),
-      ("Splatoon", "/sub/s_squid_beakon.png")
-    )),
-    ("Suction Bomb", AWeapon(
-      ("Splatoon 3", "/sub/s3_suction_bomb.png"),
-      ("Splatoon 2", "/sub/s2_suction_bomb.png"),
-      ("Splatoon", "/sub/s_suction_bomb.png")
-    )),
-    ("Torpedo", AWeapon(
-      ("Splatoon 3", "/sub/s3_torpedo.png"),
-      ("Splatoon 2", "/sub/s2_torpedo.png")
-    )),
-    ("Toxic Mist", AWeapon(
-      ("Splatoon 3", "/sub/s3_toxic_mist.png"),
-      ("Splatoon 2", "/sub/s2_toxic_mist.png")
-    )),
-    ("Disruptor", SimpleWeapon("/sub/s_disruptor.png")),
-    ("Seeker", AWeapon(
-      ("Splatoon 3", "/sub/s3_seeker.png"),
-      ("Splatoon", "/sub/s_seeker.png")
-    ))
+object Subs {
+  import Game.*
+  val weapons = OtherWeaponList("sub",  
+    ("Angle Shooter", Seq(Splatoon3)),
+    ("Autobomb", Seq(Splatoon3, Splatoon2)),
+    ("Burst Bomb", Seq(Splatoon3, Splatoon2, Splatoon1)),
+    ("Curling Bomb", Seq(Splatoon3, Splatoon2)),
+    ("Fizzy Bomb", Seq(Splatoon3, Splatoon2)),
+    ("Ink Mine", Seq(Splatoon3, Splatoon2, Splatoon1)),
+    ("Point Sensor", Seq(Splatoon3, Splatoon2, Splatoon1)),
+    ("Smallfry", Seq(Splatoon3)),
+    ("Splash Wall", Seq(Splatoon3, Splatoon2, Splatoon1)),
+    ("Splat Bomb", Seq(Splatoon3, Splatoon2, Splatoon1)), 
+    ("Sprinkler", Seq(Splatoon3, Splatoon2, Splatoon1)),
+    ("Squid Beakon", Seq(Splatoon3, Splatoon2, Splatoon1)),
+    ("Suction Bomb", Seq(Splatoon3, Splatoon2, Splatoon1)),
+    ("Torpedo", Seq(Splatoon3, Splatoon2)),
+    ("Toxic Mist", Seq(Splatoon3, Splatoon2)),
+    ("Disruptor", Seq(Splatoon1)),
+    ("Seeker", Seq(Splatoon3, Splatoon1))
     )
 }
 object Specials {
-  val weapons = ListMap(
-      ("Big Bubbler", SimpleWeapon("/specials/s3_big_bubbler.png")),
-      ("Booyah Bomb", AWeapon(
-        ("Splatoon 3", "/specials/s3_booyah_bomb.png"),
-        ("Splatoon 2", "/specials/s2_booyah_bomb.png")
+  import Game.* 
+
+  val weapons = OtherWeaponList("specials",
+      ("Big Bubbler", Seq(Splatoon3)),
+      ("Booyah Bomb", Seq(Splatoon3, Splatoon2)),
+      ("Crab Tank", Seq(Splatoon3)),
+      ("Ink Storm", Seq(Splatoon3, Splatoon2)),
+      ("Ink Vac", Seq(Splatoon3)),
+      ("Inkjet", Seq(Splatoon3, Splatoon2)),
+      ("Killer Wail 5.1", Seq(Splatoon3)),
+      ("Reefslider", Seq(Splatoon3)),
+      ("Splashdown", Seq(Splatoon3, Splatoon2)),
+      ("Tacticooler",  Seq(Splatoon3)),
+      ("Tenta Missiles", Seq(Splatoon3, Splatoon2)),
+      ("Triple Inkstrike", Seq(Splatoon3)),
+      ("Trizooka", Seq(Splatoon3)),
+      ("Ultra Stamp", Seq(Splatoon3,Splatoon2)),
+      ("Wave Breaker", Seq(Splatoon3)),
+      ("Zipcaster", Seq(Splatoon3)),
+      ("Autobomb Rush", Seq(Splatoon3)),
+      ("Autobomb Launcher", Seq(Splatoon2)),
+      ("Baller", Seq(
+        Splatoon3, 
+        Splatoon2
       )),
-      ("Crab Tank", SimpleWeapon("/specials/s3_crab_tank.png")),
-      ("Ink Storm", AWeapon(
-        ("Splatoon 3", "/specials/s3_ink_storm.png"),
-        ("Splatoon 2", "/specials/s2_ink_storm.png")
+      ("Bubbler", Seq(
+        Splatoon3, 
+        Splatoon1
       )),
-      ("Ink Vac", SimpleWeapon("/specials/s3_ink_vac.png")),
-      ("Inkjet", AWeapon(
-        ("Splatoon 3", "/specials/s3_inkjet.png"),
-        ("Splatoon 2", "/specials/s2_inkjet.png")
+      ("Burst Bomb Rush", Seq(
+        Splatoon3,
+        Splatoon1
       )),
-      ("Killer Wail 5.1", SimpleWeapon("/specials/s3_killer_wail_5.png")),
-      ("Reefslider", SimpleWeapon("/specials/s3_reefslider.png")),
-      ("Splashdown", AWeapon(
-        ("Splatoon 3", "/specials/s3_splashdown.png"),
-        ("Splatoon 2", "/specials/s2_splashdown.png")
+      ("Burst Bomb Launcher", Seq(
+        Splatoon2
       )),
-      ("Tacticooler",  SimpleWeapon("/specials/s3_tacticooler.png")),
-      ("Tenta Missiles", AWeapon(
-        ("Splatoon 3", "/specials/s3_tenta_missiles.png"),
-        ("Splatoon 2", "/specials/s2_tenta_missiles.png")
+      ("Curling Bomb Rush", Seq(Splatoon3)),
+      ("Curling Bomb Launcher", Seq(
+        Splatoon2 
       )),
-      ("Triple Inkstrike", SimpleWeapon("/specials/s3_triple_inkstrike.png")),
-      ("Trizooka", SimpleWeapon("/specials/s3_trizooka.png")),
-      ("Ultra Stamp", AWeapon(
-        ("Splatoon 3", "/specials/s3_ultra_stamp.png"),
-        ("Splatoon 2", "/specials/s2_ultra_stamp.png")
+      ("Echolocator", Seq(
+        Splatoon3, 
+        Splatoon1
       )),
-      ("Wave Breaker", SimpleWeapon("/specials/s3_wave_breaker.png")),
-      ("Zipcaster", SimpleWeapon("/specials/s3_zipcaster.png")),
-      ("Autobomb Rush", SimpleWeapon("/specials/s3_autobomb_rush.png")),
-      ("Autobomb Launcher", SimpleWeapon("/specials/s2_autobomb_launcher.png")),
-      ("Baller", AWeapon(
-        ("Splatoon 3", "/specials/s3_baller.png"),
-        ("Splatoon 2", "/specials/s2_baller.png")
+      ("Ink Armor", Seq(
+        Splatoon3, 
+        Splatoon1
       )),
-      ("Bubbler", AWeapon(
-        ("Splatoon 3", "/specials/s3_bubbler.png"),
-        ("Splatoon", "/specials/s_bubbler.png")
+      ("Inkstrike", Seq(
+        Splatoon3,
+        Splatoon1
       )),
-      ("Burst Bomb Rush", AWeapon(
-        ("Splatoon 3", "/specials/s3_burst_bomb_rush.png"),
-        ("Splatoon", "/specials/s_burst_bomb_rush.png")
+      ("Killer Wail", Seq(
+        Splatoon3,
+        Splatoon1
       )),
-      ("Burst Bomb Launcher", AWeapon(
-        ("Splatoon 3", "/specials/s3_burst_bomb_rush.png"),
-        ("Splatoon 2", "/specials/s2_burst_bomb_launcher.png")
+      ("Kraken", Seq(
+        Splatoon3,
+        Splatoon1
       )),
-      ("Curling Bomb Rush", SimpleWeapon("/specials/s3_curling_bomb_rush.png")),
-      ("Curling Bomb Launcher", AWeapon(
-        ("Splatoon 3", "/specials/s3_curling_bomb_rush.png"),
-        ("Splatoon 2", "/specials/s2_curling_bomb_launcher.png")
+      ("Seeker Bomb Rush", Seq(
+        Splatoon3,
+        Splatoon1
       )),
-      ("Echolocator", AWeapon(
-        ("Splatoon 3", "/specials/s3_echolocator.png"),
-        ("Splatoon", "/specials/s_echolocator.png")
+      ("Splat Bomb Rush", Seq(
+        Splatoon3,
+        Splatoon1
       )),
-      ("Ink Armor", AWeapon(
-        ("Splatoon 3", "/specials/s3_ink_armor.png"),
-        ("Splatoon 2", "/specials/s2_ink_armor.png")
+      ("Splat Bomb Launcher", Seq(
+        Splatoon2
       )),
-      ("Inkstrike", AWeapon(
-        ("Splatoon 3", "/specials/s3_inkstrike.png"),
-        ("Splatoon", "/specials/s_inkstrike.png")
+      ("Suction Bomb Rush", Seq(
+        Splatoon3,
+        Splatoon1
       )),
-      ("Killer Wail", AWeapon(
-        ("Splatoon 3", "/specials/s3_killer_wail.png"),
-        ("Splatoon", "/specials/s_killer_wail.png")
-      )),
-      ("Kraken", AWeapon(
-        ("Splatoon 3", "/specials/s3_kraken.png"),
-        ("Splatoon", "/specials/s_kraken.png")
-      )),
-      ("Seeker Bomb Rush", AWeapon(
-        ("Splatoon 3", "/specials/s3_seeker_bomb_rush.png"), 
-        ("Splatoon", "/specials/s_seeker_bomb_rush.png")
-      )),
-      ("Splat Bomb Rush", AWeapon(
-        ("Splatoon 3", "/specials/s3_splat_bomb_rush.png"),
-        ("Splatoon", "/specials/s_splat_bomb_rush.png")
-      )),
-      ("Splat Bomb Launcher", AWeapon(
-        ("Splatoon 3", "/specials/s3_splat_bomb_rush.png"),
-        ("Splatoon 2", "/specials/s3_splat_bomb_launcher.png")
-      )),
-      ("Suction Bomb Rush", AWeapon(
-        ("Splatoon 3", "/specials/s3_suction_bomb_rush.png"),
-        ("Splatoon", "/specials/s_suction_bomb_rush.png"),
-      )),
-      ("Suction Bomb Launcher", AWeapon(
-        ("Splatoon 3", "/specials/s3_suction_bomb_rush.png"),
-        ("Splatoon 2", "/specials/s2_suction_bomb_launcher.png")
+      ("Suction Bomb Launcher", Seq(
+        Splatoon2
       )),
       // placeholders until i make custom 3 art
-      ("Inkzooka", NamedWeapon("Splatoon", "/specials/s_inkzooka.png")),
-      ("Bubble Blower", NamedWeapon("Splatoon 2", "/specials/s2_bubble_blower.png")),
-      ("Sting Ray", NamedWeapon("Splatoon 2", "/specials/s2_sting_ray.png"))
+      ("Inkzooka", Seq(Splatoon1)),
+      ("Bubble Blower", Seq(Splatoon2)),
+      ("Sting Ray", Seq(Splatoon2))
 
     )
 }
@@ -298,8 +481,132 @@ import java.awt.RenderingHints
 import java.awt.AlphaComposite 
 import java.awt.geom.AffineTransform
 import javax.swing.GrayFilter 
+import scala.swing.* 
+def gtkFileSelector(save : Boolean) : Option[File] = {
+  import java.io.BufferedReader 
+  import java.io.InputStreamReader
+  import java.io.IOException
+  val os = System.getProperty("os.name")
+  var inputFile : Option[File] = None
+  val zenityBase = "zenity --file-selection"
+  if (os.indexOf("nux") != -1 || os.indexOf("nix") != -1) {
+    try {
+      val zenity = 
+        if (save) {
+          zenityBase + " --title=Save --save"
+        } else {
+          zenityBase + " --title=Open"
+        }
+      val p = Runtime.getRuntime().exec(zenity)
+      val br = BufferedReader(InputStreamReader(p.getInputStream()))
+      val sb = StringBuffer()
+      var line = null
+      sb.append(br.readLine())
+      val filestring = sb.toString()
+      if (filestring.equals("null")) {
+        return None
+      } else {
+        return Some(File(filestring))
+      }
+    } catch {
+      case e : IOException => return None 
+    }
 
-def renderSplooge3(mainName : String, mainImage : BufferedImage, subName : String, subImage : BufferedImage, specialName : String, specialImage : BufferedImage, specialPoints : Option[String])  = {
+  } else {
+      val fc = FileChooser()
+      val returnVal = 
+        if (save) {
+          fc.showSaveDialog(fc)
+        } else {
+          fc.showOpenDialog(fc)
+        }
+      if (returnVal == FileChooser.Result.Approve) {
+        return Some(fc.selectedFile)
+
+      }
+  }
+  None
+
+}
+import java.io.{InputStream}
+import java.net.URL
+import org.w3c.dom.svg.SVGDocument
+
+def loadDocument(url : URL) = {
+  import org.apache.batik.util.XMLResourceDescriptor 
+  import org.apache.batik.anim.dom.SAXSVGDocumentFactory
+  val parser = XMLResourceDescriptor.getXMLParserClassName()
+  val f = SAXSVGDocumentFactory(parser)
+  val stream = url.openStream()
+  val document = f.createSVGDocument("", stream) 
+  document
+}
+def rasterize(svg : SVGDocument, width : Option[Float] = None, height : Option[Float] = None, extraCss : String = "") = {
+  import org.apache.batik.transcoder.image.ImageTranscoder   
+  import org.apache.batik.transcoder.{TranscoderInput, TranscoderOutput, TranscodingHints, XMLAbstractTranscoder, SVGAbstractTranscoder}
+  import org.apache.batik.anim.dom.SVGDOMImplementation
+  import org.apache.batik.util.SVGConstants
+  import java.nio.file.{Files, Paths}
+  import util.{Try, Success, Failure}
+  // like from minecraft!
+  import java.util.UUID
+  import com.google.common.jimfs.{Jimfs, Configuration}
+  var daimage : Option[BufferedImage] = None
+  val css =
+    """
+    svg {
+    shape-rendering: geometricPrecision;
+    text-rendering:  geometricPrecision;
+    color-rendering: optimizeQuality;
+    image-rendering: optimizeQuality;
+    }
+    """ + extraCss
+  // Jimfs SNATCHED MY WEAVE :heart_eyes:
+  val fs = Try(Jimfs.newFileSystem(Configuration.unix()))
+  fs.map {f => 
+      val path = f.getPath(UUID.randomUUID().toString())
+      Files.writeString(path, css) 
+      val hints = TranscodingHints()
+      // how sinful
+      hints.put(XMLAbstractTranscoder.KEY_XML_PARSER_VALIDATING, java.lang.Boolean.FALSE)
+      hints.put(XMLAbstractTranscoder.KEY_DOM_IMPLEMENTATION, SVGDOMImplementation.getDOMImplementation())
+      hints.put(XMLAbstractTranscoder.KEY_DOCUMENT_ELEMENT_NAMESPACE_URI, SVGConstants.SVG_NAMESPACE_URI)
+      hints.put(SVGAbstractTranscoder.KEY_USER_STYLESHEET_URI, path.toUri().toString())
+
+      width match {
+        case None => ()
+        case Some(w) => hints.put(SVGAbstractTranscoder.KEY_WIDTH, w)
+      }
+      height match {
+        case None => () 
+        case Some(h) => hints.put(SVGAbstractTranscoder.KEY_HEIGHT, h)
+      } 
+      val input = TranscoderInput(svg)
+
+      val t = new ImageTranscoder() {
+        override def createImage(w : Int, h : Int) : BufferedImage = {
+          BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
+        }
+        override def writeImage(image : BufferedImage, out : TranscoderOutput) : Unit = {
+          println("hi")
+          daimage = Some(image)
+        }
+      }
+      t.setTranscodingHints(hints)
+      t.transcode(input, TranscoderOutput())
+
+      f.close()
+      daimage
+  }.get
+  
+  
+
+}
+def renderSplooge3(mainName : String, mainImage : BufferedImage, subName : String, subImage : Either[SVGDocument, BufferedImage], specialName : String, specialImage : Either[SVGDocument, BufferedImage], specialPoints : Option[String], color : Color)  = {
+  import org.w3c.dom.Document 
+  import org.w3c.dom.svg.SVGLength
+  import org.apache.batik.anim.dom.SVGDOMImplementation
+  import org.apache.batik.util.SVGConstants
   val canvas = BufferedImage(686,507, BufferedImage.TYPE_INT_ARGB); 
   val g = canvas.createGraphics()
   val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s3_kit_backdrop.png"))
@@ -308,14 +615,43 @@ def renderSplooge3(mainName : String, mainImage : BufferedImage, subName : Strin
   val subSpecialX = 268
   val subY = 151 
   val specialY = 240
-  val transform = AffineTransform(1.1233,-0.0746, -51.0117, -0.0027, 0.8273, 126.8330) 
+  val transform = AffineTransform(1.1233,-0.0746, -51.0117, -0.0027, 0.8273, 126.8330)
+  val widthPng = 196
+  val widthSubPng = 64
+  lazy val magicColor = {
+      val r = color.getRed()
+      val g = color.getGreen()
+      val b = color.getBlue()
+      s"rgb($r, $g, $b)" 
+  }
+  lazy val basedCss = 
+    s"""
+    .ink {
+
+      fill: $magicColor !important;
+    }
+    .inkstroke {
+      stroke: $magicColor !important;
+    }
+    """
+  
+  val sub = 
+    subImage match 
+    { case Left(doc) => rasterize(doc, Some(widthSubPng), Some(widthSubPng), basedCss).get
+      case Right(img) => img
+    }  
+  val special = 
+    specialImage match 
+    { case Left(doc) => rasterize(doc, Some(widthSubPng), Some(widthSubPng), basedCss).get
+      case Right(img) => img
+    }
   g.setRenderingHint(
     RenderingHints.KEY_INTERPOLATION,
     RenderingHints.VALUE_INTERPOLATION_BILINEAR)
   g.drawImage(kit, 0, 0, 676, 413, null)
-  g.drawImage(mainImage, 47, 120, 196, 196, null)
-  g.drawImage(subImage, subSpecialX, subY, 64, 64, null) 
-  g.drawImage(specialImage, subSpecialX, specialY, 64, 64, null)
+  g.drawImage(mainImage, 47, 130, widthPng, widthPng, null)
+  g.drawImage(sub, subSpecialX, subY, widthSubPng, widthSubPng, null) 
+  g.drawImage(special, subSpecialX, specialY, widthSubPng, widthSubPng, null)
   g.setRenderingHint(
         RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -347,90 +683,47 @@ class ComboModel[A] extends javax.swing.DefaultComboBoxModel[A] {
   def +=(elem: A) =  addElement(elem)
   def ++=(elems: TraversableOnce[A]) =  elems.foreach(addElement) 
 }
-import scala.swing.* 
 import java.awt.Dimension
 object SwingApp { 
+  import net.bulbyvr.swing.svg.SVGComponent
+  import org.apache.batik.swing.svg.JSVGComponent
+  import org.apache.batik.swing.svg.{SVGDocumentLoaderListener, SVGDocumentLoaderEvent}
   def top = new MainFrame {
-    private val me = this
+    private var safeDoc = false
     title = "Bubly Kit Generator"
     contents = {
       new BoxPanel(Orientation.Vertical) {
         
-        val mainGroup = WeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), "Main", Mains.weapons) 
-        val subGroup = WeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),"Sub", Subs.weapons) 
-        val specialGroup = WeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),"Special", Specials.weapons)
-        def revertMainImage() =
-          mainGroup.image = Resource(Mains.weapons.get(mainGroup.dropdown.selection.item).get.styles.get(mainGroup.styleDropdown.selection.item).get).asBufferedImage
-        def revertSubImage() = 
-          subGroup.image = Resource(Subs.weapons.get(subGroup.dropdown.selection.item).get.styles.get(subGroup.styleDropdown.selection.item).get).asBufferedImage
-        def revertSpecialImage() = 
-          specialGroup.image = Resource(Specials.weapons.get(specialGroup.dropdown.selection.item).get.styles.get(specialGroup.styleDropdown.selection.item).get).asBufferedImage
-        val selectMainImage = new Button("Select Main Image") {
-          reactions += {
-            case event.ButtonClicked(_) => 
-              val chooser = FileChooser()
-              val res = chooser.showOpenDialog(me)
-              res match { 
-                case FileChooser.Result.Approve => 
-                  val image = ImageIO.read(chooser.selectedFile)
-                  mainGroup.image = image
-              }
+        val mainGroup = MainWeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), "Main", Mains.weapons) 
+        val subGroup = OtherWeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),"Sub", Subs.weapons) 
+        val specialGroup = OtherWeaponGroup(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),"Special", Specials.weapons)
 
-
-          }
-        }
-        val selectSubImage = new Button("Select Sub Image") {
-          reactions += {
-            case event.ButtonClicked(_) => 
-              val chooser = FileChooser()
-              val res = chooser.showOpenDialog(me)
-              res match { 
-                case FileChooser.Result.Approve => 
-                  val image = ImageIO.read(chooser.selectedFile)
-                  subGroup.image = image 
-              }
-
-
-          }
-        }
-        val selectSpecialImage = new Button("Select Special Image") {
-          reactions += {
-            case event.ButtonClicked(_) => 
-              val chooser = FileChooser()
-              val res = chooser.showOpenDialog(me)
-              res match { 
-                case FileChooser.Result.Approve => 
-                  val image = ImageIO.read(chooser.selectedFile)
-                  specialGroup.image = image
-              }
-
-
-          }
-        }
-        val clearMainImage = new Button("Clear Main Image") {
-          reactions += {
-            case event.ButtonClicked(_) => 
-              revertMainImage()
-          }
-        }
-        val clearSubImage = new Button("Clear Sub Image") {
-          reactions += {
-            case event.ButtonClicked(_) => 
-              revertSubImage()
-          }
-        }
-        val clearSpecialImage = new Button("Clear Special Image") {
-          reactions += {
-            case event.ButtonClicked(_) => 
-              revertSpecialImage()
-          }
-        }
         contents += mainGroup
-        contents += FlowPanel(selectMainImage, clearMainImage)
         contents += subGroup 
-        contents += FlowPanel(selectSubImage, clearSubImage)
         contents += specialGroup
-        contents += FlowPanel(selectSpecialImage, clearSpecialImage)
+        /*
+        val fancySvg = new SVGComponent() {
+          import net.bulbyvr.swing.svg.event.*
+          svgDocumentLoader.reactions += {
+            case SVGDocumentLoaderCompleted(_, doc) => { 
+              val ink = doc.getElementById("ink")
+
+              doc.getRootElement().getOverrideStyle(ink.getElementsByTagName("stop").item(0).asInstanceOf[org.w3c.dom.Element], null).setProperty("stop-color", "#fffffzf", "important")
+              ink.getElementsByTagName("stop").item(0).asInstanceOf[org.w3c.dom.Element].setAttribute("style", "stop-color:#000000;stop-opacity:1;")
+              println("hi")
+            }
+          }
+        }
+        fancySvg.peer.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC)
+        fancySvg.loadDocument(this.getClass.getResource("test/baller.svg").toString())
+
+        contents += fancySvg
+        fancySvg.peer.setBackground(Color(0,0,0,0))
+        */
+        val doSvgMagic = CheckBox("Do SVG Ink")
+        val colorPicker = ColorChooser(Color(0.1019608f,  0.1019608f, 0.6862745f))
+        contents += FlowPanel(doSvgMagic, colorPicker)
+
         contents += new Button("Generate!") {
           reactions += {
             case event.ButtonClicked(_) => 
@@ -439,22 +732,39 @@ object SwingApp {
                 case "" => mainGroup.dropdown.selection.item
                 case text => text
               }
-              val subImage = subGroup.image 
               val subName = subGroup.textField.text match { 
                 case "" => subGroup.dropdown.selection.item 
                 case text => text
               }
-              val specialImage = specialGroup.image 
               val specialName = specialGroup.textField.text match { 
                 case "" => specialGroup.dropdown.selection.item 
                 case text => text 
               }
-              val kit = renderSplooge3(mainName, mainImage, subName, subImage, specialName, specialImage, None)
-              val chooser = FileChooser()
-              val res = chooser.showSaveDialog(me)
-              res match { 
-                case FileChooser.Result.Approve => 
-                  ImageIO.write(kit, "png", chooser.selectedFile)
+              val (subImage, specialImage) = 
+                if (doSvgMagic.selected) {
+                  val supath = subGroup.fetchImage.get.path 
+                  val susvgPath = supath.replace(".png", ".svg")
+                  val subImage =
+                    Option(this.getClass.getResource(susvgPath)) match {
+                      case Some(p) => Left(loadDocument(p))
+                      case None => Right(subGroup.image)
+                    }
+                  val sppath = specialGroup.fetchImage.get.path 
+                  val spsvgPath = sppath.replace(".png", ".svg")
+                  val specialImage = 
+                    Option(this.getClass.getResource(spsvgPath)) match {
+                      case Some(p) => Left(loadDocument(p))
+                      case None => Right(subGroup.image)
+                    }
+                  (subImage, specialImage)
+                } else {
+                  (Right(subGroup.image), Right(specialGroup.image))
+                }
+              
+              val kit = renderSplooge3(mainName, mainImage, subName, subImage, specialName, specialImage, None, colorPicker.color)
+              
+              gtkFileSelector(true).foreach { it => 
+                ImageIO.write(kit, "png", it)
               }
             
           }
@@ -473,7 +783,7 @@ class LabeledTextField(label : String) extends FlowPanel {
   contents += textField
 }
 import javax.swing.ImageIcon
-class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap : Map[String, Weapon]) extends BoxPanel(Orientation.Vertical) {
+abstract class WeaponGroup[A](private var daimage: BufferedImage, label : String, val weaponsMap : Map[String, A]) extends BoxPanel(Orientation.Vertical) {
   val labeledField = LabeledTextField(label)
   contents += labeledField 
   val weapons = Seq.from(weaponsMap.keys)
@@ -484,26 +794,35 @@ class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap
         if (this.selection.item == null) 
           ()
         else {
-          val weapon = weaponsMap.get(dropdown.selection.item).get
-          val goodThing = weapon.styles.get(this.selection.item).get 
-          image = Resource(goodThing).asBufferedImage
+          val goodThing = fetchImage 
+          goodThing.foreach(it => image = it.asBufferedImage)
         }
     }
   }
+  def fetchImage : Option[ItemLocation] = { 
+    val weapon = weaponsMap.get(dropdown.selection.item).get 
+    val path = getPath(weapon)
+    println(path)
+    path
+  }
+  def getPath(weapon : A) : Option[ItemLocation]
+  def weaponStyles(weapon : A) : Seq[String]
+  def weaponDefault(weapon : A) : String
+  def weaponDefaultItem(weapon : A) : String
   styleDropdown.peer.setModel(styleModel)
   val dropdown : ComboBox[String] = new ComboBox[String](weapons) {
     maximumSize = Dimension(200, 6)
     selection.reactions += {
       case event.SelectionChanged(_) => 
         val weapon = weaponsMap.get(this.selection.item).get
-        image = Resource(weapon.primaryLoc).asBufferedImage 
         styleModel.removeAllElements()
-        styleModel ++=  weapon.styles.keys
-        styleDropdown.selection.item = weapon.primaryKey
+        styleModel ++=  weaponStyles(weapon)
+        styleDropdown.selection.item = weaponDefault(weapon)
+        revertImage()
     }
   }
   val imagelabel = Label("", ImageIcon(daimage), Alignment.Center)
-
+  
   contents += FlowPanel(imagelabel, dropdown, styleDropdown)
   def textField = labeledField.textField
   def image = daimage
@@ -519,6 +838,80 @@ class WeaponGroup(private var daimage: BufferedImage, label : String, weaponsMap
     imagelabel.icon = ImageIcon(editedImage)
   }
 
+  val fileSelector = 
+    new Button(s"Select $label Image") {
+      reactions += {
+        case event.ButtonClicked(_) => 
+          gtkFileSelector(false).foreach { it => 
+            image = ImageIO.read(it)
+          } 
+
+
+      }
+    }
+  
+  def revertImage() = {
+    fetchImage.foreach(it => image = it.asBufferedImage)
+  }
+  val clearImage = 
+    new Button(s"Clear $label image") {
+      reactions += {
+        case event.ButtonClicked(_) => 
+          revertImage()
+      }
+    }
+  val imageSelectPanel = FlowPanel(fileSelector, clearImage)
+  contents += imageSelectPanel
+}
+class MainWeaponGroup(d : BufferedImage, l : String, w : Map[String, Weapon]) extends WeaponGroup[Weapon](d, l, w) {
+  def getPath(weapon : Weapon) = {
+    val index = 
+      if (this.styleDropdown.selection.index == -1) {
+        0  
+      } else {
+        this.styleDropdown.selection.index
+      }
+    Some(weapon.path(weapon.styles.toSeq(index), flatcheckbox.selected))
+  }
+  def weaponStyles(weapon : Weapon) = 
+    weapon.styles.map(it => it.name + " " + it.game.name.toUpperCase()).toSeq
+  def weaponDefault(weapon : Weapon) = 
+    weapon.styles.head.name 
+  def weaponDefaultItem(weapon : Weapon) = 
+    weapon.path(weapon.styles.head, flatcheckbox.selected).path
+  val flatcheckbox = 
+    new CheckBox("Flat Icons") {
+      reactions += {
+        case event.ButtonClicked(_) => 
+          revertImage()
+      }
+    }
+  imageSelectPanel.contents += flatcheckbox
+  
+}
+class OtherWeaponGroup(d : BufferedImage, l : String, w : Map[String, OtherWeapon]) extends WeaponGroup[OtherWeapon](d, l, w) {
+  def pathHelper(weapon : OtherWeapon, longName : String) = {
+    val game = Game.fromLongName(longName)
+    game match {
+      case Some(g) => 
+        Some(Resource(weapon.root + "/" + g.name + "_" + weapon.name.replace(' ', '_').toLowerCase() + ".png"))
+      case None => 
+        None
+    }
+
+  }
+  def getPath(weapon : OtherWeapon) = {
+    pathHelper(weapon, this.styleDropdown.selection.item)
+  }
+  def weaponStyles(weapon : OtherWeapon) = {
+    weapon.games.map(_.longName)
+  }
+  def weaponDefault(weapon : OtherWeapon) = {
+    weapon.games.head.longName 
+  }
+  def weaponDefaultItem(weapon : OtherWeapon) = {
+    pathHelper(weapon, weaponDefault(weapon)).get.path
+  }
 
 }
 import javax.swing.UIManager
