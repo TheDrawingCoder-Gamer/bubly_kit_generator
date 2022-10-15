@@ -602,82 +602,149 @@ def rasterize(svg : SVGDocument, width : Option[Float] = None, height : Option[F
   
 
 }
-def renderSplooge3(mainName : String, mainImage : BufferedImage, subName : String, subImage : Either[SVGDocument, BufferedImage], specialName : String, specialImage : Either[SVGDocument, BufferedImage], specialPoints : Option[String], color : Color)  = {
-  import org.w3c.dom.Document 
-  import org.w3c.dom.svg.SVGLength
-  import org.apache.batik.anim.dom.SVGDOMImplementation
-  import org.apache.batik.util.SVGConstants
-  val canvas = BufferedImage(686,507, BufferedImage.TYPE_INT_ARGB); 
-  val g = canvas.createGraphics()
-  val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s3_kit_backdrop.png"))
-  val w = kit.getWidth()
-  val h = kit.getHeight()
-  val subSpecialX = 268
-  val subY = 151 
-  val specialY = 240
-  val transform = AffineTransform(1.1233,-0.0746, -51.0117, -0.0027, 0.8273, 126.8330)
-  val widthPng = 196
-  val widthSubPng = 64
-  lazy val magicColor = {
-      val r = color.getRed()
-      val g = color.getGreen()
-      val b = color.getBlue()
-      s"rgb($r, $g, $b)" 
+trait KitFactory {
+  protected def kit : BufferedImage 
+  protected def subSize : Int 
+  protected def specialSize : Int 
+  protected def kitSize : (Int, Int)
+  protected def kitPos : (Int, Int)
+  protected def mainSize : Int 
+  protected def mainPos : (Int, Int)
+  protected def subPos : (Int, Int) 
+  protected def specialPos : (Int, Int)
+  protected def weaponFont : Font 
+  protected def subFont : Font 
+  protected def specialFont : Font 
+  protected def spPointsFont : Font 
+  protected def weaponTextPos : (Int, Int)
+  protected def subTextPos : (Int, Int)
+  protected def specialTextPos : (Int, Int)
+  protected def spPointsTextPos : (Int, Int)
+  private def makeShadow(loadImg : BufferedImage) = {
+    val img = new BufferedImage(loadImg.getWidth(), loadImg.getHeight(),
+        BufferedImage.TYPE_INT_ARGB)
+    val graphics = img.createGraphics()
+    graphics.drawImage(loadImg, null, 0, 0)
+    graphics.setComposite(AlphaComposite.SrcIn)
+    graphics.setColor(Color.BLACK)
+    graphics.fillRect(0, 0, loadImg.getWidth(), loadImg.getHeight())
+    graphics.setColor(Color(0, 0, 0, 100))
+    graphics.fillRect(0, 0, loadImg.getWidth(), loadImg.getHeight())
+    graphics.dispose()
+    img
   }
-  lazy val basedCss = 
-    s"""
-    .ink {
+  def renderKit(mainName : String, mainImage : BufferedImage, subName : String, subImage : Either[SVGDocument, BufferedImage], 
+    specialName : String, specialImage : Either[SVGDocument, BufferedImage], specialPoints : Option[String], color : Color) : BufferedImage = {
+      import org.w3c.dom.Document 
+      import org.w3c.dom.svg.SVGLength
+      import org.apache.batik.anim.dom.SVGDOMImplementation
+      import org.apache.batik.util.SVGConstants
+      val canvas = BufferedImage(686,507, BufferedImage.TYPE_INT_ARGB); 
+      val g = canvas.createGraphics()
+      val kit = this.kit
+      val (mainX, mainY) = mainPos
+      val (subX, subY) = subPos
+      val (specialX, specialY) = specialPos
 
-      fill: $magicColor !important;
-    }
-    .inkstroke {
-      stroke: $magicColor !important;
-    }
-    """
+      val shadow = makeShadow(mainImage)
+      val widthPng = mainSize
+      val widthSubPng = subSize 
+      val widthSpecialPng = specialSize
+      val transform = AffineTransform.getScaleInstance(widthPng.toDouble / shadow.getWidth(), (widthPng * 0.75) / shadow.getHeight())
+      transform.preConcatenate(AffineTransform.getTranslateInstance(mainX, mainY + (widthPng.toDouble / 4)))
+      lazy val magicColor = {
+          val r = color.getRed()
+          val g = color.getGreen()
+          val b = color.getBlue()
+          s"rgb($r, $g, $b)" 
+      }
+      lazy val basedCss = 
+        s"""
+        .ink {
+
+          fill: $magicColor !important;
+        }
+        .inkstroke {
+          stroke: $magicColor !important;
+        }
+        """
   
-  val sub = 
-    subImage match 
-    { case Left(doc) => rasterize(doc, Some(widthSubPng), Some(widthSubPng), basedCss).get
-      case Right(img) => img
-    }  
-  val special = 
-    specialImage match 
-    { case Left(doc) => rasterize(doc, Some(widthSubPng), Some(widthSubPng), basedCss).get
-      case Right(img) => img
-    }
-  g.setRenderingHint(
-    RenderingHints.KEY_INTERPOLATION,
-    RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-  g.drawImage(kit, 0, 0, 676, 413, null)
-  g.drawImage(mainImage, 47, 130, widthPng, widthPng, null)
-  g.drawImage(sub, subSpecialX, subY, widthSubPng, widthSubPng, null) 
-  g.drawImage(special, subSpecialX, specialY, widthSubPng, widthSubPng, null)
-  g.setRenderingHint(
+      val sub = 
+        subImage match 
+        { case Left(doc) => rasterize(doc, Some(widthSubPng), Some(widthSubPng), basedCss).get
+          case Right(img) => img
+        }  
+      val special = 
+        specialImage match 
+        { case Left(doc) => rasterize(doc, Some(widthSpecialPng), Some(widthSpecialPng), basedCss).get
+          case Right(img) => img
+        }
+      g.setRenderingHint(
+        RenderingHints.KEY_INTERPOLATION,
+        RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+      val (kitX, kitY) = kitPos 
+      val (kitW, kitH) = kitSize
+      g.drawImage(kit, kitX, kitY, kitW, kitH, null)
+      g.drawImage(shadow, transform, null)
+      g.drawImage(mainImage, mainX, mainY, widthPng, widthPng, null)
+      g.drawImage(sub, subX, subY, widthSubPng, widthSubPng, null) 
+      g.drawImage(special, specialX, specialY, widthSpecialPng, widthSpecialPng, null)
+      g.setRenderingHint(
         RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-  val sploogeFont = Font.createFont(Font.TRUETYPE_FONT, this.getClass.getResourceAsStream("/font/splatoon1.otf"))
-  val splooge2Font = Font.createFont(Font.TRUETYPE_FONT, this.getClass.getResourceAsStream("/font/splatoon2.otf"))
-  val mainFont = sploogeFont.deriveFont(Font.PLAIN, 32)
-  val subFont = splooge2Font.deriveFont(Font.PLAIN, 25)
-  val pointsFont = splooge2Font.deriveFont(Font.PLAIN, 32)
-  g.setFont(mainFont)
-  val fm = g.getFontMetrics()
-  g.setColor(Color.WHITE)
-  g.drawString(mainName, 52, 25 + fm.getAscent())
-  g.setFont(subFont)
-  val fm2 = g.getFontMetrics()
-  val subFontX = subSpecialX + 75
-  g.drawString(subName, subFontX, subY + fm2.getAscent())
-  g.drawString(specialName, subFontX, specialY + fm2.getAscent())
-  specialPoints match { 
-    case Some(p) =>
-      g.setFont(pointsFont)
-      val pointsAscent = g.getFontMetrics().getAscent()
-      g.drawString(p + "p", 475, 320 + pointsAscent)
-    case None => ()
+      g.setFont(weaponFont)
+      val fm = g.getFontMetrics()
+      g.setColor(Color.WHITE)
+      val (mainTxtX, mainTxtY) = weaponTextPos
+      g.drawString(mainName, mainTxtX, mainTxtY + fm.getAscent())
+      g.setFont(subFont)
+      val fm2 = g.getFontMetrics()
+      val (subFontX, subFontY) = subTextPos
+      val (spFontX, spFontY) = specialTextPos
+      g.drawString(subName, subFontX, subFontY + fm2.getAscent())
+      g.setFont(specialFont)
+      val fm3 = g.getFontMetrics().getAscent()
+      g.drawString(specialName, spFontX, spFontY + fm3)
+      specialPoints match { 
+        case Some(p) =>
+          g.setFont(spPointsFont)
+          val pointsAscent = g.getFontMetrics().getAscent()
+          val (spX, spY) = spPointsTextPos
+          g.drawString(p + "p", spX, spY + pointsAscent)
+        case None => ()
+      }
+      g.dispose()
+      canvas
   }
-  g.dispose()
-  canvas
+}
+
+object Splooge3KitGen extends KitFactory {
+  // TODO: is holding an image in memory really worth it?
+  override lazy val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s3_kit_backdrop.png"))
+  override val kitSize = (676, 413)
+  private val subSpSize = 64 
+  override val mainSize = 175
+  override val mainPos = (50, 140)
+  override val subSize = subSpSize 
+  override val specialSize = subSpSize
+  private val subSpX = 268
+  private val subY = 151 
+  private val specialY = 240
+  override val subPos = (subSpX, subY)
+  override val specialPos = (subSpX, specialY)
+  override val kitPos = (0, 0)
+  private lazy val splooge1Font = Font.createFont(Font.TRUETYPE_FONT, this.getClass.getResourceAsStream("/font/splatoon1.otf"))
+  private lazy val splooge2Font = Font.createFont(Font.TRUETYPE_FONT, this.getClass.getResourceAsStream("/font/splatoon2.otf"))
+  private lazy val subSpFont = splooge2Font.deriveFont(Font.PLAIN, 25)
+  override lazy val weaponFont = splooge1Font.deriveFont(Font.PLAIN, 32)
+  override lazy val subFont = subSpFont 
+  override lazy val specialFont = subSpFont 
+  override lazy val spPointsFont = splooge2Font.deriveFont(Font.PLAIN, 32)
+  override val weaponTextPos = (52, 25)
+  private val subSpFontX = subSpX + 75
+  override val subTextPos = (subSpFontX, subY)
+  override val specialTextPos = (subSpFontX, specialY)
+  override val spPointsTextPos = (475, 320)
 }
 class ComboModel[A] extends javax.swing.DefaultComboBoxModel[A] {
   def +=(elem: A) =  addElement(elem)
@@ -761,7 +828,7 @@ object SwingApp {
                   (Right(subGroup.image), Right(specialGroup.image))
                 }
               
-              val kit = renderSplooge3(mainName, mainImage, subName, subImage, specialName, specialImage, None, colorPicker.color)
+              val kit = Splooge3KitGen.renderKit(mainName, mainImage, subName, subImage, specialName, specialImage, None, colorPicker.color)
               
               gtkFileSelector(true).foreach { it => 
                 ImageIO.write(kit, "png", it)
