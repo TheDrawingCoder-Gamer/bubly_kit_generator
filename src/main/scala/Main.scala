@@ -16,24 +16,7 @@ enum Game(val name : String, val longName : String) {
   case Splatoon3 extends Game("s3", "Splatoon 3")
   
 }
-object Game {
-  def fromName(name : String) = {
-    name match {
-      case "s" => Some(Splatoon1)
-      case "s2" => Some(Splatoon2)
-      case "s3" => Some(Splatoon3)
-      case _ => None
-    }
-  }
-  def fromLongName(name : String) = {
-    name match {
-      case "Splatoon" => Some(Splatoon1)
-      case "Splatoon 2" => Some(Splatoon2)
-      case "Splatoon 3" => Some(Splatoon3)
-      case _ => None
-    }
-  }
-}
+
 
 case class WeaponStyle(val game : Game, val name : String)
 case class AWeapon(val styles : Seq[WeaponStyle])
@@ -71,9 +54,9 @@ case class Weapon(val rootPath : String,val name : String, val styles : Seq[Weap
 
 
 
-def MapToWeapon(daMap : Map[String, AWeapon], root : String) : Map[String, Weapon] = 
-  ListMap.from(for ((k, AWeapon(styles)) <- daMap) yield {
-    (k, Weapon(root, k, styles))
+def MapToWeapon(daMap : Map[String, AWeapon], root : String) : Seq[Weapon] = 
+  Seq.from(for ((k, AWeapon(styles)) <- daMap) yield {
+    Weapon(root, k, styles)
   })
 // def ComplexWeapon(defGame : Game, styles : (String, Game)*) = AWeapon(Seq(styles:_*).map((a, b) => WeaponStyle(b, a)).prepended(WeaponStyle(defGame, "")))
 def ComplexWeapon(styles : Seq[(String, Game)]*) = 
@@ -86,13 +69,12 @@ def Resource(path : String) = ItemLocation(path, true)
 
 case class OtherWeapon(root : String, name : String, games : Seq[Game])
 def OtherWeaponList(root : String, contents : (String, Seq[Game])*) : NonMainWeaponList = 
-  ListMap.from(Seq(contents:_*).map((k, v) => (k, OtherWeapon(root, k, v))))
+  contents.map((k, v) => OtherWeapon(root, k, v))
 def DefStyles(games : Game*) = 
   games.map(game => ("", game))
 def Style(name : String, games : Game*) = 
   games.map(game => (name, game))
-
-type NonMainWeaponList = Map[String, OtherWeapon]
+type NonMainWeaponList = Seq[OtherWeapon]
 object Mains { 
   import Game.*
   def allGamesDefStyle = DefStyles(Splatoon3, Splatoon2, Splatoon1)
@@ -433,7 +415,7 @@ object Specials {
       )),
       ("Ink Armor", Seq(
         Splatoon3, 
-        Splatoon1
+        Splatoon2
       )),
       ("Inkstrike", Seq(
         Splatoon3,
@@ -879,8 +861,8 @@ object Splooge1KitGen extends KitFactory {
   override val kitWidth = 676
   override val canvasSize = (686, 507)
   private val subSpSize = 64 
-  override val mainSize = 175
-  override val mainPos = (60, 100)
+  override val mainSize = 125
+  override val mainPos = (80, 120)
   override val subSize = subSpSize 
   override val specialSize = subSpSize
   private val subX = 240 
@@ -909,12 +891,39 @@ object Splooge1KitGen extends KitFactory {
   override val renderSubShadow = true 
   override val renderSpecialShadow = true
 }
-class ComboModel[A] extends javax.swing.DefaultComboBoxModel[A] {
-  def +=(elem: A) =  addElement(elem)
-  def ++=(elems: TraversableOnce[A]) =  elems.foreach(addElement) 
-}
+
 import java.awt.Dimension
 import javax.swing.ImageIcon
+import javax.{swing => jswing}
+abstract class GenericCellRenderer[T] extends jswing.JLabel with jswing.ListCellRenderer[T] {
+  setOpaque(true)
+  private val defaults = jswing.UIManager.getDefaults()
+  private val bg = defaults.get("ComboBox.background").asInstanceOf[Color]
+  private val fg = defaults.get("ComboBox.foreground").asInstanceOf[Color]
+  private val selBg = defaults.get("ComboBox.selectionBackground").asInstanceOf[Color]
+  private val selFg = defaults.get("ComboBox.selectionForeground").asInstanceOf[Color]
+  def getTextOfValue(value : T) : String
+  def getListCellRendererComponent(list: jswing.JList[_ <: T], value : T, index : Int, isSelected : Boolean, isFocused : Boolean) = {
+    setText(getTextOfValue(value))
+    if (isSelected) {
+      setBackground(selBg)
+      setForeground(selFg)
+    } else {
+      setBackground(bg)
+      setForeground(fg)
+    }
+    this
+  }
+
+}
+class OtherWeaponCellRenderer extends GenericCellRenderer[OtherWeapon] {
+  override def getTextOfValue(other : OtherWeapon) = 
+    Option(other).map(_.name).getOrElse("")
+}
+class GameCellRenderer extends GenericCellRenderer[Game] {
+  override def getTextOfValue(value : Game) = 
+    Option(value).map(_.longName).getOrElse("")
+}
 object SwingApp { 
   import net.bulbyvr.swing.svg.SVGComponent
   import org.apache.batik.swing.svg.JSVGComponent
@@ -956,40 +965,36 @@ object SwingApp {
         contents += FlowPanel(doSvgMagic, colorPicker)
         val brandGroup = BrandGroup()
         contents += brandGroup
+        val gameModel = ListView.Renderer.Wrapped(GameCellRenderer())
         val kitStyle = new ComboBox(Seq(Game.Splatoon3, Game.Splatoon2, Game.Splatoon1))
+        kitStyle.renderer = gameModel
         contents += FlowPanel(kitStyle)
         contents += new Button("Generate!") {
           reactions += {
             case event.ButtonClicked(_) => 
               val mainImage = mainGroup.image
               val mainName = mainGroup.textField.text match { 
-                case "" => mainGroup.dropdown.selection.item
+                case "" => mainGroup.selectedName.getOrElse("")
                 case text => text
               }
               val subName = subGroup.textField.text match { 
-                case "" => subGroup.dropdown.selection.item 
+                case "" => subGroup.selectedName.getOrElse("") 
                 case text => text
               }
               val specialName = specialGroup.textField.text match { 
-                case "" => specialGroup.dropdown.selection.item 
+                case "" => specialGroup.selectedName.getOrElse("") 
                 case text => text 
               }
               val (subImage, specialImage) = 
                 if (doSvgMagic.selected) {
-                  val supath = subGroup.fetchImage.get.path 
-                  val susvgPath = supath.replace(".png", ".svg")
-                  val subImage =
-                    Option(this.getClass.getResource(susvgPath)) match {
-                      case Some(p) => Left(loadDocument(p))
-                      case None => Right(subGroup.image)
-                    }
-                  val sppath = specialGroup.fetchImage.get.path 
-                  val spsvgPath = sppath.replace(".png", ".svg")
-                  val specialImage = 
-                    Option(this.getClass.getResource(spsvgPath)) match {
-                      case Some(p) => Left(loadDocument(p))
-                      case None => Right(subGroup.image)
-                    }
+                  val subImage = subGroup.fetchImage.flatMap { p => 
+                    val svgPath = p.path.replace(".png", ".svg")
+                    Option(this.getClass.getResource(svgPath)).map(p => loadDocument(p))
+                  }.toLeft(subGroup.image)
+                  val specialImage = specialGroup.fetchImage.flatMap { sppath => 
+                    val spsvgPath = sppath.path.replace(".png", ".svg")
+                    Option(this.getClass.getResource(spsvgPath)).map(p => loadDocument(p))
+                  }.toLeft(specialGroup.image)
                   (subImage, specialImage)
                 } else {
                   (Right(subGroup.image), Right(specialGroup.image))
@@ -1052,54 +1057,15 @@ class BrandGroup extends FlowPanel {
   contents += brandDropdown
 
 } 
+
 class LabeledTextField(label : String) extends FlowPanel {
   contents += Label(label)
   val textField = new TextField(20)
   contents += textField
 }
-abstract class WeaponGroup[A](private var daimage: BufferedImage, label : String, val weaponsMap : Map[String, A]) extends BoxPanel(Orientation.Vertical) {
-  val labeledField = LabeledTextField(label)
-  contents += labeledField 
-  val weapons = Seq.from(weaponsMap.keys)
-  val styleModel = ComboModel[String]()
-  val styleDropdown = new ComboBox[String](Seq()) {
-    selection.reactions += {
-      case event.SelectionChanged(_) =>
-        if (this.selection.item == null) 
-          ()
-        else {
-          val goodThing = fetchImage 
-          goodThing.foreach(it => image = it.asBufferedImage)
-        }
-    }
-  }
-  def fetchImage : Option[ItemLocation] = { 
-    val weapon = weaponsMap.get(dropdown.selection.item).get 
-    val path = getPath(weapon)
-    println(path)
-    path
-  }
-  def getPath(weapon : A) : Option[ItemLocation]
-  def weaponStyles(weapon : A) : Seq[String]
-  def weaponDefault(weapon : A) : String
-  def weaponDefaultItem(weapon : A) : String
-  styleDropdown.peer.setModel(styleModel)
-  val dropdown : ComboBox[String] = new ComboBox[String](weapons) {
-    maximumSize = Dimension(200, 6)
-    selection.reactions += {
-      case event.SelectionChanged(_) => 
-        val weapon = weaponsMap.get(this.selection.item).get
-        styleModel.removeAllElements()
-        styleModel ++=  weaponStyles(weapon)
-        styleDropdown.selection.item = weaponDefault(weapon)
-        revertImage()
-    }
-  }
-  val imagelabel = Label("", ImageIcon(daimage), Alignment.Center)
-  
-  contents += FlowPanel(imagelabel, dropdown, styleDropdown)
-  def textField = labeledField.textField
-  def image = daimage
+import net.bulbyvr.swing.MutableComboBox
+trait WeaponGroup[W, S](protected var daimage  : BufferedImage, label : String, val weapons : Seq[W]) extends BoxPanel {
+  def image = daimage 
   def image_=(i : BufferedImage) = {
     daimage = i
     val editedImage = BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB)
@@ -1112,32 +1078,66 @@ abstract class WeaponGroup[A](private var daimage: BufferedImage, label : String
     imagelabel.icon = ImageIcon(editedImage)
   }
 
+  protected val labeledField = LabeledTextField(label)
+  def fetchImage : Option[ItemLocation]
+  val imagelabel = Label("", ImageIcon(daimage), Alignment.Center)
   val fileSelector = 
-    new Button(s"Select $label Image") {
+    new Button(s"Select $label image") {
       reactions += {
         case event.ButtonClicked(_) => 
-          gtkFileSelector(false).foreach { it => 
+          gtkFileSelector(false).foreach { it =>
             image = ImageIO.read(it)
-          } 
-
-
+          }
       }
     }
-  
-  def revertImage() = {
-    fetchImage.foreach(it => image = it.asBufferedImage)
-  }
-  val clearImage = 
+  val clearButton = 
     new Button(s"Clear $label image") {
       reactions += {
         case event.ButtonClicked(_) => 
           revertImage()
       }
     }
-  val imageSelectPanel = FlowPanel(fileSelector, clearImage)
-  contents += imageSelectPanel
+
+  def revertImage() = {
+    fetchImage.foreach(it => image = it.asBufferedImage)
+  }
+  def textField = labeledField.textField
+  def selectedName : Option[String]
+  protected def weaponRenderer : ListView.Renderer[W]
+  protected def styleRenderer : ListView.Renderer[S]
+  protected def getWeaponStyles(weapon : W) : Seq[S] 
+  // lazy to prevent sadness
+  lazy val styleDropdown = {
+    val item = new MutableComboBox[S](getWeaponStyles(weapons.head)) {
+      selection.reactions += {
+        case event.SelectionChanged(_) => 
+          revertImage()
+      }
+    }
+    item.renderer = styleRenderer
+    item
+  }
+  lazy val weaponDropdown = { 
+    val item = new ComboBox[W](weapons) {
+      selection.reactions += {
+        case event.SelectionChanged(_) => 
+          styleDropdown.items.removeAllElements()
+          styleDropdown.items ++= getWeaponStyles(selection.item)
+      }
+    }
+    item.renderer = weaponRenderer
+    item
+  }
+  protected val fileSelPanel = FlowPanel(fileSelector, clearButton)
+  def addContents() = {
+    contents += labeledField 
+    contents += FlowPanel(imagelabel, weaponDropdown, styleDropdown)
+    contents += fileSelPanel
+    ()
+  }
 }
-class MainWeaponGroup(d : BufferedImage, l : String, w : Map[String, Weapon]) extends WeaponGroup[Weapon](d, l, w) {
+class MainWeaponGroup(d : BufferedImage, l : String, val daWeapons : Seq[Weapon]) extends BoxPanel(Orientation.Vertical) with WeaponGroup[Weapon, WeaponStyle](d, l, daWeapons) {
+  
   def getPath(weapon : Weapon) = {
     val index = 
       if (this.styleDropdown.selection.index == -1) {
@@ -1147,12 +1147,7 @@ class MainWeaponGroup(d : BufferedImage, l : String, w : Map[String, Weapon]) ex
       }
     Some(weapon.path(weapon.styles.toSeq(index), flatcheckbox.selected))
   }
-  def weaponStyles(weapon : Weapon) = 
-    weapon.styles.map(it => it.name + " " + it.game.name.toUpperCase()).toSeq
-  def weaponDefault(weapon : Weapon) = 
-    weapon.styles.head.name 
-  def weaponDefaultItem(weapon : Weapon) = 
-    weapon.path(weapon.styles.head, flatcheckbox.selected).path
+
   val flatcheckbox = 
     new CheckBox("Flat Icons") {
       reactions += {
@@ -1160,33 +1155,50 @@ class MainWeaponGroup(d : BufferedImage, l : String, w : Map[String, Weapon]) ex
           revertImage()
       }
     }
-  imageSelectPanel.contents += flatcheckbox
+  override protected val weaponRenderer = ListView.Renderer.Wrapped(new GenericCellRenderer[Weapon]() {
+    override def getTextOfValue(v : Weapon) = 
+      Option(v).map(_.name).getOrElse("")
+  })
+  override protected val styleRenderer = ListView.Renderer.Wrapped(new GenericCellRenderer[WeaponStyle]() {
+    override def getTextOfValue(s : WeaponStyle) = 
+      Option(s) match {
+        case Some(v) => s"${v.name} ${v.game.name}"
+        case None => ""
+      }
+  })
+ 
+  override protected def getWeaponStyles(w : Weapon) = 
+    w.styles
+  fileSelPanel.contents += flatcheckbox
+  override def fetchImage = {
+    getPath(weaponDropdown.selection.item)
+  }
+  override def selectedName = {
+    Some(weaponDropdown.selection.item.name)
+  }
+  // HACK: lateinit
+  addContents()
   
 }
-class OtherWeaponGroup(d : BufferedImage, l : String, w : Map[String, OtherWeapon]) extends WeaponGroup[OtherWeapon](d, l, w) {
-  def pathHelper(weapon : OtherWeapon, longName : String) = {
-    val game = Game.fromLongName(longName)
-    game match {
-      case Some(g) => 
-        Some(Resource(weapon.root + "/" + g.name + "_" + weapon.name.replace(' ', '_').toLowerCase() + ".png"))
-      case None => 
-        None
-    }
+class OtherWeaponGroup(d : BufferedImage, l : String, w : Seq[OtherWeapon]) extends BoxPanel(Orientation.Vertical) with WeaponGroup[OtherWeapon, Game](d, l, w) {
+  def currentWeapon = weaponDropdown.selection.item
+  def pathHelper(weapon : OtherWeapon, game : Game) = {
+    Some(Resource(weapon.root + "/" + game.name + "_" + weapon.name.replace(' ', '_').toLowerCase() + ".png"))
 
   }
+  override protected val styleRenderer = ListView.Renderer.Wrapped(GameCellRenderer())
   def getPath(weapon : OtherWeapon) = {
-    pathHelper(weapon, this.styleDropdown.selection.item)
+    Option(styleDropdown.selection.item).flatMap(it => pathHelper(weapon, it))
   }
-  def weaponStyles(weapon : OtherWeapon) = {
-    weapon.games.map(_.longName)
+ 
+  override protected val weaponRenderer = ListView.Renderer.Wrapped(OtherWeaponCellRenderer())
+  override def fetchImage = {
+     getPath(currentWeapon)
   }
-  def weaponDefault(weapon : OtherWeapon) = {
-    weapon.games.head.longName 
-  }
-  def weaponDefaultItem(weapon : OtherWeapon) = {
-    pathHelper(weapon, weaponDefault(weapon)).get.path
-  }
-
+  override def selectedName = Option(currentWeapon).map(_.name)
+  override def getWeaponStyles(w : OtherWeapon) = w.games
+  // HACK : late init
+  addContents()
 }
 import javax.swing.UIManager
 @main def launchApp = { 
