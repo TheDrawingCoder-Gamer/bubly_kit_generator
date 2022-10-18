@@ -472,6 +472,60 @@ object Specials {
 
     )
 }
+object Brands {
+  val brands = Seq(
+      "89",
+      "amiibo",
+      "Annaki",
+      "Barazushi",
+      "Custom Star",
+      "Custom White",
+      "Custom Yellow",
+      "Cuttlegear",
+      "Cuttlegear Rectangle",
+      "D",
+      "Deco Black",
+      "Deco Blue",
+      "Deco Rhinestones",
+      "Deco Yellow",
+      "Emberz",
+      "Enperry",
+      "Enperry Crown",
+      "Fishfry Red",
+      "Fishfry Yellow",
+      "Foil",
+      "Foil Triangle",
+      "Forge",
+      "Gold",
+      "Grizzco",
+      "Inkline",
+      "Inkline Blue",
+      "Kelp",
+      "Kensa",
+      "Krak-on",
+      "Krak-on Blue",
+      "Neo",
+      "Neo Gray",
+      "New!",
+      "Nouveau Blue",
+      "Nouveau White",
+      "Rockenberg",
+      "Scalop",
+      "Sheldon's Picks",
+      "Sorella Fish",
+      "Sorella Tartan",
+      "Splashmob",
+      "SquidForce",
+      "Takoroka",
+      "Tentatek",
+      "Tentatek Light",
+      "Tentatek Splatoon 1",
+      "Zekko",
+      "Zink Blue",
+      "Zink White",
+      "Zink Yellow"
+    )
+}
 import java.awt.image.BufferedImage;
 import java.awt.image.FilteredImageSource;
 import java.awt.Graphics2D
@@ -603,10 +657,11 @@ def rasterize(svg : SVGDocument, width : Option[Float] = None, height : Option[F
 
 }
 trait KitFactory {
-  protected def kit : BufferedImage 
+  protected def kit : BufferedImage
+  protected def canvasSize : (Int, Int)
   protected def subSize : Int 
   protected def specialSize : Int 
-  protected def kitSize : (Int, Int)
+  protected def kitWidth : Int 
   protected def kitPos : (Int, Int)
   protected def mainSize : Int 
   protected def mainPos : (Int, Int)
@@ -620,6 +675,8 @@ trait KitFactory {
   protected def subTextPos : (Int, Int)
   protected def specialTextPos : (Int, Int)
   protected def spPointsTextPos : (Int, Int)
+  protected def renderSubShadow : Boolean = false
+  protected def renderSpecialShadow : Boolean = false 
   private def makeShadow(loadImg : BufferedImage) = {
     val img = new BufferedImage(loadImg.getWidth(), loadImg.getHeight(),
         BufferedImage.TYPE_INT_ARGB)
@@ -634,24 +691,37 @@ trait KitFactory {
     img
   }
   def renderKit(mainName : String, mainImage : BufferedImage, subName : String, subImage : Either[SVGDocument, BufferedImage], 
-    specialName : String, specialImage : Either[SVGDocument, BufferedImage], specialPoints : Option[String], color : Color) : BufferedImage = {
+    specialName : String, specialImage : Either[SVGDocument, BufferedImage], specialPoints : Option[String], color : Color, brand : Option[BufferedImage]) : BufferedImage = {
       import org.w3c.dom.Document 
       import org.w3c.dom.svg.SVGLength
       import org.apache.batik.anim.dom.SVGDOMImplementation
       import org.apache.batik.util.SVGConstants
-      val canvas = BufferedImage(686,507, BufferedImage.TYPE_INT_ARGB); 
+      val (canvasW, canvasH) = canvasSize 
+      val canvas = BufferedImage(canvasW,canvasH, BufferedImage.TYPE_INT_ARGB); 
       val g = canvas.createGraphics()
       val kit = this.kit
       val (mainX, mainY) = mainPos
       val (subX, subY) = subPos
       val (specialX, specialY) = specialPos
-
       val shadow = makeShadow(mainImage)
       val widthPng = mainSize
+      val brandSize = widthPng / 2d
+      val brandOffset = brandSize 
+      val brandX = mainX + brandOffset 
+      val brandY = mainY + brandOffset
+     
       val widthSubPng = subSize 
       val widthSpecialPng = specialSize
-      val transform = AffineTransform.getScaleInstance(widthPng.toDouble / shadow.getWidth(), (widthPng * 0.75) / shadow.getHeight())
+      // use width on height to prevent STREEETCh
+      val mainTransform = AffineTransform.getTranslateInstance(mainX, mainY)
+      mainTransform.scale(widthPng.toDouble / mainImage.getWidth(), widthPng.toDouble / mainImage.getWidth())
+      
+      val transform = AffineTransform.getScaleInstance(widthPng.toDouble / shadow.getWidth(), (widthPng * 0.75) / shadow.getWidth())
       transform.preConcatenate(AffineTransform.getTranslateInstance(mainX, mainY + (widthPng.toDouble / 4)))
+      val kitScaling = kitWidth.toDouble / kit.getWidth()
+      val (kitX, kitY) = kitPos 
+      val kitTransform = AffineTransform.getTranslateInstance(kitX, kitY) 
+      kitTransform.scale(kitScaling, kitScaling)
       lazy val magicColor = {
           val r = color.getRed()
           val g = color.getGreen()
@@ -679,16 +749,43 @@ trait KitFactory {
         { case Left(doc) => rasterize(doc, Some(widthSpecialPng), Some(widthSpecialPng), basedCss).get
           case Right(img) => img
         }
+      val subTransform = AffineTransform.getTranslateInstance(subX, subY)
+      val subScaling = widthSubPng.toDouble / sub.getWidth()
+      subTransform.scale(subScaling, subScaling)
+      val specialTransform = AffineTransform.getTranslateInstance(specialX, specialY)
+      val specialScaling = widthSpecialPng.toDouble / special.getWidth()
+      specialTransform.scale(specialScaling, specialScaling)
       g.setRenderingHint(
         RenderingHints.KEY_INTERPOLATION,
         RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-      val (kitX, kitY) = kitPos 
-      val (kitW, kitH) = kitSize
-      g.drawImage(kit, kitX, kitY, kitW, kitH, null)
+      g.drawImage(kit, kitTransform, null)
       g.drawImage(shadow, transform, null)
-      g.drawImage(mainImage, mainX, mainY, widthPng, widthPng, null)
-      g.drawImage(sub, subX, subY, widthSubPng, widthSubPng, null) 
-      g.drawImage(special, specialX, specialY, widthSpecialPng, widthSpecialPng, null)
+      g.drawImage(mainImage, mainTransform, null)
+      brand match {
+        case None => ()
+        case Some(b) => { 
+          val brandTransform = AffineTransform.getTranslateInstance(brandX, brandY)
+          // let's stretch our legs :bangbang:
+          brandTransform.scale(brandSize.toDouble / b.getWidth(), brandSize.toDouble / b.getWidth())
+          g.drawImage(b, brandTransform, null)
+        }
+      }
+      if (renderSubShadow) {
+        val subShadow = makeShadow(sub) 
+        val shadowTransform = AffineTransform(subTransform)
+        shadowTransform.preConcatenate(AffineTransform.getTranslateInstance(0, widthSubPng.toDouble / 4))
+        shadowTransform.scale(1, 0.75)
+        g.drawImage(subShadow, shadowTransform, null)
+      }
+      if (renderSpecialShadow) {
+        val spShadow = makeShadow(special) 
+        val shadowTransform = AffineTransform(specialTransform)
+        shadowTransform.preConcatenate(AffineTransform.getTranslateInstance(0, widthSubPng.toDouble / 4))
+        shadowTransform.scale(1, 0.75)
+        g.drawImage(spShadow, shadowTransform, null)
+      }
+      g.drawImage(sub, subTransform, null) 
+      g.drawImage(special, specialTransform, null)
       g.setRenderingHint(
         RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -721,7 +818,8 @@ trait KitFactory {
 object Splooge3KitGen extends KitFactory {
   // TODO: is holding an image in memory really worth it?
   override lazy val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s3_kit_backdrop.png"))
-  override val kitSize = (676, 413)
+  override val kitWidth = 676
+  override val canvasSize = (686, 507)
   private val subSpSize = 64 
   override val mainSize = 175
   override val mainPos = (50, 140)
@@ -746,11 +844,77 @@ object Splooge3KitGen extends KitFactory {
   override val specialTextPos = (subSpFontX, specialY)
   override val spPointsTextPos = (475, 320)
 }
+object Splooge2KitGen extends KitFactory {
+  // TODO: is holding an image in memory really worth it?
+  override lazy val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s2_kit_backdrop.png"))
+  override val kitWidth = 676
+  override val canvasSize = (686, 600)
+  private val subSpSize = 100 
+  override val mainSize = 150
+  override val mainPos = (80, 260)
+  override val subSize = subSpSize 
+  override val specialSize = subSpSize
+  private val subSpX = 280
+  private val subY = 215
+  private val specialY = 355
+  override val subPos = (subSpX, subY)
+  override val specialPos = (subSpX, specialY)
+  override val kitPos = (0, 0)
+  private lazy val splooge2Font = Font.createFont(Font.TRUETYPE_FONT, this.getClass.getResourceAsStream("/font/splatoon2.otf"))
+  private lazy val subSpFont = splooge2Font.deriveFont(Font.PLAIN, 28)
+  override lazy val weaponFont = splooge2Font.deriveFont(Font.PLAIN, 35)
+  override lazy val subFont = subSpFont 
+  override lazy val specialFont = subSpFont 
+  override lazy val spPointsFont = splooge2Font.deriveFont(Font.PLAIN, 32)
+  override val weaponTextPos = (70, 120)
+  private val subSpFontX = subSpX + 150 
+  private val textOffset = 50
+  override val subTextPos = (subSpFontX, subY + textOffset)
+  override val specialTextPos = (subSpFontX, specialY + textOffset)
+  override val spPointsTextPos = (485, 485)
+}
+object Splooge1KitGen extends KitFactory {
+  // TODO: is holding an image in memory really worth it?
+  override lazy val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s_kit_backdrop.png"))
+  override val kitWidth = 676
+  override val canvasSize = (686, 507)
+  private val subSpSize = 64 
+  override val mainSize = 175
+  override val mainPos = (60, 100)
+  override val subSize = subSpSize 
+  override val specialSize = subSpSize
+  private val subX = 240 
+  private val specialX = 105
+  private val subY = 185
+  private val specialY = 275
+  override val subPos = (subX, subY)
+  override val specialPos = (specialX, specialY)
+  override val kitPos = (0, 0)
+  private lazy val splooge1Font = Font.createFont(Font.TRUETYPE_FONT, this.getClass.getResourceAsStream("/font/splatoon1.otf"))
+  private lazy val michromaFont = Font.createFont(Font.TRUETYPE_FONT, this.getClass.getResourceAsStream("/font/michroma-regular.ttf"))
+  private lazy val subSpFont = michromaFont.deriveFont(Font.PLAIN, 20)
+  private val fontTransform = AffineTransform.getRotateInstance(Math.toRadians(-5), 0, 0)
+  // me omw to derive ur mom
+  override lazy val weaponFont = splooge1Font.deriveFont(Font.PLAIN, 32).deriveFont(fontTransform)
+  override lazy val subFont = subSpFont 
+  override lazy val specialFont = subSpFont 
+  override lazy val spPointsFont = michromaFont.deriveFont(Font.PLAIN, 14)
+  override val weaponTextPos = (52, 35)
+  private val subFontX = subX + 90 
+  private val specialFontX = specialX + 120 
+  private val textYOff = 25 
+  override val subTextPos = (subFontX, subY + textYOff + 5)
+  override val specialTextPos = (specialFontX, specialY + textYOff)
+  override val spPointsTextPos = (410, 367)
+  override val renderSubShadow = true 
+  override val renderSpecialShadow = true
+}
 class ComboModel[A] extends javax.swing.DefaultComboBoxModel[A] {
   def +=(elem: A) =  addElement(elem)
   def ++=(elems: TraversableOnce[A]) =  elems.foreach(addElement) 
 }
 import java.awt.Dimension
+import javax.swing.ImageIcon
 object SwingApp { 
   import net.bulbyvr.swing.svg.SVGComponent
   import org.apache.batik.swing.svg.JSVGComponent
@@ -790,7 +954,10 @@ object SwingApp {
         val doSvgMagic = CheckBox("Do SVG Ink")
         val colorPicker = ColorChooser(Color(0.1019608f,  0.1019608f, 0.6862745f))
         contents += FlowPanel(doSvgMagic, colorPicker)
-
+        val brandGroup = BrandGroup()
+        contents += brandGroup
+        val kitStyle = new ComboBox(Seq(Game.Splatoon3, Game.Splatoon2, Game.Splatoon1))
+        contents += FlowPanel(kitStyle)
         contents += new Button("Generate!") {
           reactions += {
             case event.ButtonClicked(_) => 
@@ -827,8 +994,13 @@ object SwingApp {
                 } else {
                   (Right(subGroup.image), Right(specialGroup.image))
                 }
-              
-              val kit = Splooge3KitGen.renderKit(mainName, mainImage, subName, subImage, specialName, specialImage, None, colorPicker.color)
+              val brand = brandGroup.image 
+              val renderer = kitStyle.selection.item match {
+                case Game.Splatoon3 => Splooge3KitGen.renderKit 
+                case Game.Splatoon2 => Splooge2KitGen.renderKit
+                case Game.Splatoon1 => Splooge1KitGen.renderKit
+              } 
+              val kit = renderer(mainName, mainImage, subName, subImage, specialName, specialImage, None, colorPicker.color, brand)
               
               gtkFileSelector(true).foreach { it => 
                 ImageIO.write(kit, "png", it)
@@ -843,13 +1015,48 @@ object SwingApp {
 }
 
    
-    
+class BrandGroup extends FlowPanel {
+  private var daimage : Option[BufferedImage] = None
+  def image = daimage 
+  def image_=(im  : Option[BufferedImage]) = {
+    daimage = im
+    im match {
+      case None => 
+        brandImageLabel.icon = null 
+      case Some(i) => 
+        val good = BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB)
+        val g = good.createGraphics()
+        g.setRenderingHint(
+        RenderingHints.KEY_INTERPOLATION,
+        RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+        g.drawImage(i, 0, 0, 64, 64, null)
+        g.dispose()
+        brandImageLabel.icon = ImageIcon(good)
+
+    }
+  }
+  val brandImageLabel = new Label("", null, Alignment.Center)
+  val brandDropdown = new ComboBox("None" +: Brands.brands) {
+    selection.reactions += {
+      case event.SelectionChanged(_) =>
+        this.selection.item match {
+          case "None" => image = None
+          case i => 
+            val res = i.toLowerCase().replace(' ', '_') 
+            println(res)
+            image = Some(ImageIO.read(this.getClass.getResourceAsStream(s"/brands/$res.png")))
+        }
+    }
+  }
+  contents += brandImageLabel 
+  contents += brandDropdown
+
+} 
 class LabeledTextField(label : String) extends FlowPanel {
   contents += Label(label)
   val textField = new TextField(20)
   contents += textField
 }
-import javax.swing.ImageIcon
 abstract class WeaponGroup[A](private var daimage: BufferedImage, label : String, val weaponsMap : Map[String, A]) extends BoxPanel(Orientation.Vertical) {
   val labeledField = LabeledTextField(label)
   contents += labeledField 
@@ -988,4 +1195,21 @@ import javax.swing.UIManager
   window.centerOnScreen()
   window.open()
 }
- 
+
+def testSplooge2 = {
+  import java.nio.file.Files
+  val mainImage = ImageIO.read(this.getClass.getResourceAsStream("/weapons/s2_52_gal.png"))
+  val subImage = ImageIO.read(this.getClass.getResourceAsStream("/sub/s2_splat_bomb.png"))
+  val specialImage = ImageIO.read(this.getClass.getResourceAsStream("/specials/s2_booyah_bomb.png"))
+  val rendered = Splooge2KitGen.renderKit("52 gal", mainImage, "Splat bomb", Right(subImage), "Booyah bomb", Right(specialImage), Some("500"), Color.BLACK, None)
+  ImageIO.write(rendered, "png", File("out/s2test.png")) 
+}
+def testSplooge1 = {
+  import java.nio.file.Files
+  val mainImage = ImageIO.read(this.getClass.getResourceAsStream("/weapons/s_52_gal.png"))
+  val subImage = ImageIO.read(this.getClass.getResourceAsStream("/sub/s_splat_bomb.png"))
+  val specialImage = ImageIO.read(this.getClass.getResourceAsStream("/specials/s_echolocator.png"))
+  val rendered = Splooge1KitGen.renderKit("Glooga Dualies TEST TEST TEST", mainImage, "Splat bomb", Right(subImage), "Booyah bomb", Right(specialImage), Some("500"), Color.BLACK, None)
+  ImageIO.write(rendered, "png", File("out/s1test.png")) 
+}
+
