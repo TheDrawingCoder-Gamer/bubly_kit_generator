@@ -19,7 +19,6 @@ enum Game(val name : String, val longName : String) {
 
 
 case class WeaponStyle(val game : Game, val name : String)
-case class AWeapon(val styles : Seq[WeaponStyle])
 case class Weapon(val rootPath : String,val name : String, val styles : Seq[WeaponStyle]) { 
   def path(style : WeaponStyle, twodim : Boolean) : ItemLocation = {
     val daName = name.replace(' ', '_').toLowerCase()
@@ -53,15 +52,15 @@ case class Weapon(val rootPath : String,val name : String, val styles : Seq[Weap
 }
 
 
-
+type AWeapon = Seq[WeaponStyle]
 def MapToWeapon(daMap : Map[String, AWeapon], root : String) : Seq[Weapon] = 
-  Seq.from(for ((k, AWeapon(styles)) <- daMap) yield {
+  Seq.from(for ((k, styles) <- daMap) yield {
     Weapon(root, k, styles)
   })
 // def ComplexWeapon(defGame : Game, styles : (String, Game)*) = AWeapon(Seq(styles:_*).map((a, b) => WeaponStyle(b, a)).prepended(WeaponStyle(defGame, "")))
 def ComplexWeapon(styles : Seq[(String, Game)]*) = 
-  AWeapon(Seq.concat(styles:_*).map( (a, b) => WeaponStyle(b, a)))
-def SimpleWeapon(game : Game) = AWeapon(Seq(WeaponStyle(game, "")))
+  Seq.concat(styles:_*).map( (a, b) => WeaponStyle(b, a))
+def SimpleWeapon(game : Game) = Seq(WeaponStyle(game, ""))
 def Simple3Weapon = SimpleWeapon(Game.Splatoon3)
 def WeaponList(root : String, contents : (String, AWeapon)*) = 
   MapToWeapon(ListMap(contents:_*), root)
@@ -82,13 +81,16 @@ object Mains {
   def oldGames(style : String) = Style(style, Splatoon2, Splatoon1)
   def newGames(style : String) = Style(style, Splatoon3, Splatoon2)
   val heroWeapon = Style("Hero", Splatoon2)
-  val splatcharger = ComplexWeapon(
+  val splatterscope = ComplexWeapon(
       allGames(""),
-      oldGames("Hero"),
       Style("Kelp", Splatoon1),
       Style("Firefin", Splatoon2),
       Style("Kensa", Splatoon2),
       Style("Sheldon's Picks", Splatoon1)
+    )
+  val eliter = ComplexWeapon(
+      allGames(""),
+      oldGames("Custom")
     )
   val weapons = WeaponList("weapons",
     ("52 Gal", ComplexWeapon(
@@ -140,20 +142,18 @@ object Mains {
       newGames(""),
       Style("Custom", Splatoon2)
     )),
+    ("Dual Squelcher", ComplexWeapon(
+      DefStyles(Splatoon1),
+      Style("Custom", Splatoon1)
+      )),
     ("Dynamo Roller", ComplexWeapon(
       allGames(""),
       oldGames("Gold"),
       Style("Kensa", Splatoon2),
       Style("Sheldon's Picks", Splatoon1)
     )),
-    ("E-Liter", ComplexWeapon(
-      allGames(""),
-      oldGames("Custom")
-    )),
-    ("E-Liter Scope", ComplexWeapon(
-      allGames(""),
-      oldGames("Custom")
-    )),
+    ("E-Liter", eliter),
+    ("E-Liter Scope", eliter),
     ("Explosher", ComplexWeapon(
       newGames(""),
       Style("Custom", Splatoon2)
@@ -205,7 +205,8 @@ object Mains {
     ("Mini Splatling", ComplexWeapon(
       allGames(""),
       oldGames("Zink"),
-      Style("Kensa", Splatoon2)
+      Style("Kensa", Splatoon2),
+      Style("Sheldon's Picks", Splatoon1)
     )),
     ("N-Zap", ComplexWeapon(
       DefStyles(Splatoon3, Splatoon2, Splatoon1),
@@ -256,18 +257,10 @@ object Mains {
       Style("Sorella", Splatoon2),
       heroWeapon
     )),
-    ("Splat Charger", ComplexWeapon(
-      allGames(""),
-      oldGames("Hero"),
-      Style("Kelp", Splatoon1),
-      Style("Firefin", Splatoon2),
-      Style("Kensa", Splatoon2),
-      Style("Sheldon's Picks", Splatoon1)
-    )
-    ),
+    ("Splat Charger", splatterscope ++ ComplexWeapon(oldGames("Hero"))),
     ("Splat Dualies", ComplexWeapon(
       DefStyles(Splatoon3, Splatoon2),
-      Style("Kensa", Splatoon3, Splatoon2),
+      Style("Kensa", Splatoon2),
       heroWeapon
       )),
     ("Splat Roller", ComplexWeapon(
@@ -279,20 +272,15 @@ object Mains {
     )),
     ("Splatana Stamper", Simple3Weapon),
     ("Splatana Wiper", Simple3Weapon),
-    ("Splatterscope", ComplexWeapon(
-      allGames(""),
-      Style("Kelp", Splatoon1),
-      Style("Firefin", Splatoon2),
-      Style("Kensa", Splatoon2),
-      Style("Sheldon's Picks", Splatoon1)
-    )
-    ),
+    ("Splatterscope", splatterscope),
     ("Splattershot", ComplexWeapon(
       DefStyles(Splatoon3, Splatoon2, Splatoon1),
       Style("Kensa", Splatoon2),
       allGames("Hero"),
       Style("Sheldon's Picks", Splatoon1),
-      oldGames("Tentatek")
+      oldGames("Tentatek"),
+      // BEST SPLATTERSHOT :heart:
+      oldGames("Octo")
     )),
     ("Splattershot Jr", ComplexWeapon(
       allGames(""),
@@ -384,10 +372,16 @@ object Specials {
       ("Tacticooler",  Seq(Splatoon3)),
       ("Tenta Missiles", Seq(Splatoon3, Splatoon2)),
       ("Triple Inkstrike", Seq(Splatoon3)),
-      ("Trizooka", Seq(Splatoon3)),
+      ("Trizooka", Seq(
+        Splatoon3,
+        Splatoon2
+      )),
       ("Ultra Stamp", Seq(Splatoon3,Splatoon2)),
       ("Wave Breaker", Seq(Splatoon3)),
-      ("Zipcaster", Seq(Splatoon3)),
+      ("Zipcaster", Seq(
+        Splatoon3,
+        Splatoon2
+      )),
       ("Autobomb Rush", Seq(Splatoon3)),
       ("Autobomb Launcher", Seq(Splatoon2)),
       ("Baller", Seq(
@@ -447,10 +441,9 @@ object Specials {
       ("Suction Bomb Launcher", Seq(
         Splatoon2
       )),
-      // placeholders until i make custom 3 art
-      ("Inkzooka", Seq(Splatoon1)),
-      ("Bubble Blower", Seq(Splatoon2)),
-      ("Sting Ray", Seq(Splatoon2))
+      ("Inkzooka", Seq(Splatoon3, Splatoon1)),
+      ("Bubble Blower", Seq(Splatoon3, Splatoon2)),
+      ("Sting Ray", Seq(Splatoon3, Splatoon2))
 
     )
 }
@@ -719,6 +712,9 @@ trait KitFactory {
         .inkstroke {
           stroke: $magicColor !important;
         }
+        #ink stop {
+          stop-color: $magicColor;
+        }
         """
   
       val sub = 
@@ -802,14 +798,14 @@ object Splooge3KitGen extends KitFactory {
   override lazy val kit = ImageIO.read(this.getClass.getResourceAsStream("/ui/s3_kit_backdrop.png"))
   override val kitWidth = 676
   override val canvasSize = (686, 507)
-  private val subSpSize = 64 
-  override val mainSize = 175
-  override val mainPos = (50, 140)
+  private val subSpSize = 62 
+  override val mainSize = 170
+  override val mainPos = (50, 135)
   override val subSize = subSpSize 
   override val specialSize = subSpSize
   private val subSpX = 268
-  private val subY = 151 
-  private val specialY = 240
+  private val subY = 148 
+  private val specialY = 235
   override val subPos = (subSpX, subY)
   override val specialPos = (subSpX, specialY)
   override val kitPos = (0, 0)
@@ -941,27 +937,10 @@ object SwingApp {
         contents += mainGroup
         contents += subGroup 
         contents += specialGroup
-        /*
-        val fancySvg = new SVGComponent() {
-          import net.bulbyvr.swing.svg.event.*
-          svgDocumentLoader.reactions += {
-            case SVGDocumentLoaderCompleted(_, doc) => { 
-              val ink = doc.getElementById("ink")
 
-              doc.getRootElement().getOverrideStyle(ink.getElementsByTagName("stop").item(0).asInstanceOf[org.w3c.dom.Element], null).setProperty("stop-color", "#fffffzf", "important")
-              ink.getElementsByTagName("stop").item(0).asInstanceOf[org.w3c.dom.Element].setAttribute("style", "stop-color:#000000;stop-opacity:1;")
-              println("hi")
-            }
-          }
-        }
-        fancySvg.peer.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC)
-        fancySvg.loadDocument(this.getClass.getResource("test/baller.svg").toString())
-
-        contents += fancySvg
-        fancySvg.peer.setBackground(Color(0,0,0,0))
-        */
         val doSvgMagic = CheckBox("Do SVG Ink")
         val colorPicker = ColorChooser(Color(0.1019608f,  0.1019608f, 0.6862745f))
+        colorPicker.peer.setPreviewPanel(jswing.JPanel())
         contents += FlowPanel(doSvgMagic, colorPicker)
         val brandGroup = BrandGroup()
         contents += brandGroup
@@ -1200,6 +1179,7 @@ class OtherWeaponGroup(d : BufferedImage, l : String, w : Seq[OtherWeapon]) exte
   // HACK : late init
   addContents()
 }
+
 import javax.swing.UIManager
 @main def launchApp = { 
   UIManager.getInstalledLookAndFeels().find(it => it.getName() == "GTK+").foreach(it => UIManager.setLookAndFeel(it.getClassName()))

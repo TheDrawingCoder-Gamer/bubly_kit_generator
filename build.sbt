@@ -14,5 +14,5 @@ lazy val root = project
     libraryDependencies += "org.apache.xmlgraphics" % "batik" % "1.15",
     libraryDependencies += "org.apache.xmlgraphics" % "batik-swing" % "1.15",
     libraryDependencies += "org.apache.xmlgraphics" % "batik-transcoder" % "1.15",
-    libraryDependencies += "com.google.jimfs" % "jimfs" % "1.2"
+    libraryDependencies += "com.google.jimfs" % "jimfs" % "1.2",
   )
