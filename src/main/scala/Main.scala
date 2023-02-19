@@ -416,6 +416,7 @@ object Specials {
       ("Killer Wail 5.1", Seq(Splatoon3, Splatoon1)),
       ("Reefslider", Seq(Splatoon3, Splatoon1)),
       ("Splashdown", Seq(Splatoon3, Splatoon2)),
+      ("Super Chump", Seq(S3Custom)),
       ("Tacticooler",  Seq(Splatoon3, Splatoon1)),
       ("Tenta Missiles", Seq(Splatoon3, Splatoon2, Splatoon1)),
       ("Triple Inkstrike", Seq(Splatoon3, Splatoon1)),
