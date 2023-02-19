@@ -1,8 +1,8 @@
-## sbt project compiled with Scala 3
+# Splatoon 3 Kit Generator
 
-### Usage
+Splatoon 3 Kit generator written in scala.
+Ugly GUI courtesy java ui. 
 
-This is a normal sbt project. You can compile code with `sbt compile`, run it with `sbt run`, and `sbt console` will start a Scala 3 REPL.
-
-For more information on the sbt-dotty plugin, see the
-[scala3-example-project](https://github.com/scala/scala3-example-project/blob/main/README.md).
+How is it organized? Vanilla organization is how you expect - 
+For artwork of older weapons, it's the flat icon for the older game.
+For Splatoon 3, it's moved to it's own category incase weapons get released that conflict.
