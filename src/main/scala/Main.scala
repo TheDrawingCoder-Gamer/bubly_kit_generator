@@ -129,7 +129,8 @@ object Mains {
   val weapons = WeaponList("weapons",
     ("52 Gal", ComplexWeapon(
       allGamesDefStyle,
-      oldGames("Deco")
+      oldGames("Deco"),
+      "Kensa" := Splatoon2,
     )),
     ("96 Gal", ComplexWeapon(
       allGamesDefStyle,
@@ -208,7 +209,8 @@ object Mains {
     )),
     ("H-3 Nozzlenose", ComplexWeapon(
       Default ++= AllGames,
-      "D" ++= OldGames
+      "D" ++= OldGames,
+      "Sheldon's Picks" ++= OldGames,
     )),
     ("Heavy Splatling", ComplexWeapon(
       Default ++= AllGames,
@@ -231,18 +233,21 @@ object Mains {
     )),
     ("L-3 Nozzlenose", ComplexWeapon(
       Default ++= AllGames,
-      "D" ++= OldGames
+      "D" ++= OldGames,
+      "Kensa" := Splatoon2,
     )),
     ("Luna Blaster", ComplexWeapon(
       Default ++= AllGames,
       "Neo" ++= AllGames,
+      "Kensa" := Splatoon2,
       "Emberz" := S3Custom,
     )),
     ("Mini Splatling", ComplexWeapon(
       Default ++= AllGames,
       "Zink" ++= AllGames,
       "Kensa" := Splatoon2,
-      "Sheldon's Picks" := Splatoon1
+      "Sheldon's Picks" := S3Custom,
+      "Sheldon's Picks" += Splatoon1
     )),
     ("N-Zap", ComplexWeapon(
       Default ++= AllGames,
@@ -257,6 +262,7 @@ object Mains {
     "Octobrush".where(
       Default ++= AllGames,
       oldGames("Nouveau"),
+      "Kensa" := Splatoon2,
       heroWeapon
     ),
     ("Range Blaster", ComplexWeapon(
@@ -267,6 +273,7 @@ object Mains {
     ("Rapid Blaster", ComplexWeapon(
       Default ++= AllGames,
       "Deco" ++= OldGames,
+      "Kensa" := Splatoon2,
       "Wicked" := S3Custom,
     )),
     ("Rapid Blaster Pro", ComplexWeapon(
@@ -300,6 +307,7 @@ object Mains {
     ("Splat Charger", splatterscope ++ ComplexWeapon(oldGames("Hero"))),
     ("Splat Dualies", ComplexWeapon(
       Default ++= NewGames,
+      "Enperry" := Splatoon2,
       "Kensa" := Splatoon2,
       "Kensa" += S3Custom,
       heroWeapon
@@ -308,6 +316,7 @@ object Mains {
       Default ++= AllGames,
       "Hero" ++= OldGames,
       "Krak-on" ++= OldGames,
+      "Krak-on" += S3Custom,
       "Sheldon's Picks" := Splatoon1,
       "Kensa" := Splatoon2
     )),
@@ -341,6 +350,7 @@ object Mains {
     "Sploosh-o-matic".where(
       Default ++= AllGames,
       "Neo" ++= OldGames,
+      "Sheldon's Picks" ++= OldGames,
     ),
     ("Squeezer", ComplexWeapon(
       Default ++= NewGames,
@@ -398,7 +408,7 @@ object Subs {
     ("Torpedo", Seq(Splatoon3, Splatoon2)),
     ("Toxic Mist", Seq(Splatoon3, Splatoon2)),
     ("Disruptor", Seq(Splatoon1)),
-    ("Seeker", Seq(Splatoon3, Splatoon1))
+    ("Seeker", Seq(S3Custom, Splatoon1))
     )
 }
 
@@ -432,68 +442,68 @@ object Specials {
         Splatoon2,
         Splatoon1
       )),
-      ("Autobomb Rush", Seq(Splatoon3)),
+      ("Autobomb Rush", Seq(S3Custom)),
       ("Autobomb Launcher", Seq(Splatoon2)),
       ("Baller", Seq(
-        Splatoon3, 
+        S3Custom, 
         Splatoon2
       )),
       ("Bubbler", Seq(
-        Splatoon3, 
+        S3Custom, 
         Splatoon1
       )),
       ("Burst Bomb Rush", Seq(
-        Splatoon3,
+        S3Custom,
         Splatoon1
       )),
       ("Burst Bomb Launcher", Seq(
         Splatoon2
       )),
-      ("Curling Bomb Rush", Seq(Splatoon3)),
+      ("Curling Bomb Rush", Seq(S3Custom)),
       ("Curling Bomb Launcher", Seq(
         Splatoon2 
       )),
       ("Echolocator", Seq(
-        Splatoon3, 
+        S3Custom, 
         Splatoon1
       )),
       ("Ink Armor", Seq(
-        Splatoon3, 
+        S3Custom, 
         Splatoon2
       )),
       ("Inkstrike", Seq(
-        Splatoon3,
+        S3Custom,
         Splatoon1
       )),
       ("Killer Wail", Seq(
-        Splatoon3,
+        S3Custom,
         Splatoon1
       )),
       ("Kraken", Seq(
-        Splatoon3,
+        S3Custom,
         Splatoon1
       )),
       ("Seeker Bomb Rush", Seq(
-        Splatoon3,
+        S3Custom,
         Splatoon1
       )),
       ("Splat Bomb Rush", Seq(
-        Splatoon3,
+        S3Custom,
         Splatoon1
       )),
       ("Splat Bomb Launcher", Seq(
         Splatoon2
       )),
       ("Suction Bomb Rush", Seq(
-        Splatoon3,
+        S3Custom,
         Splatoon1
       )),
       ("Suction Bomb Launcher", Seq(
         Splatoon2
       )),
-      ("Inkzooka", Seq(Splatoon3, Splatoon1)),
-      ("Bubble Blower", Seq(Splatoon3, Splatoon2)),
-      ("Sting Ray", Seq(Splatoon3, Splatoon2))
+      ("Inkzooka", Seq(S3Custom, Splatoon1)),
+      ("Bubble Blower", Seq(S3Custom, Splatoon2)),
+      ("Sting Ray", Seq(S3Custom, Splatoon2))
 
     )
 }
