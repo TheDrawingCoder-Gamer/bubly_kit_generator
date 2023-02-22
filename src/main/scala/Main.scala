@@ -4,6 +4,7 @@ import collection.immutable.ListMap
 import javax.imageio.ImageIO;
 import java.io.File;
 import scala.collection.mutable as mut
+import java.awt.Toolkit
 case class ItemLocation(val path : String, val internal : Boolean) {
   def asBufferedImage = 
     if (internal) 
@@ -1035,9 +1036,7 @@ object SwingApp {
         val kitStyle = new ComboBox(Seq(Game.Splatoon3, Game.Splatoon2, Game.Splatoon1))
         kitStyle.renderer = gameModel
         contents += FlowPanel(kitStyle)
-        contents += new Button("Generate!") {
-          reactions += {
-            case event.ButtonClicked(_) => 
+        def generator(write: BufferedImage => Unit) = {
               val mainImage = mainGroup.image
               val mainName = mainGroup.textField.text match { 
                 case "" => mainGroup.selectedName.getOrElse("")
@@ -1072,13 +1071,30 @@ object SwingApp {
                 case Game.Splatoon1 => Splooge1KitGen.renderKit
               } 
               val kit = renderer(mainName, mainImage, subName, subImage, specialName, specialImage, None, colorPicker.color, brand)
-              
-              gtkFileSelector(true).foreach { it => 
-                ImageIO.write(kit, "png", it)
+              write(kit)
+        }
+        val generateButton = new Button("Generate!") {
+          reactions += {
+            case event.ButtonClicked(_) => 
+
+              generator { kit => 
+                gtkFileSelector(true).foreach { it => 
+                  ImageIO.write(kit, "png", it)
+                }
               }
+
             
           }
-        } 
+        }
+        val genClipboardButton = new Button("Generate to clipboard") {
+          reactions += {
+            case event.ButtonClicked(_) =>
+              generator { kit => 
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(ImageTransferable(kit), null)
+              }
+          }
+        }
+        contents += FlowPanel(generateButton, genClipboardButton)
 
       }
     }
