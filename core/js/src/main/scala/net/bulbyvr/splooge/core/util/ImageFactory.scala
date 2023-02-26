@@ -17,4 +17,9 @@ trait ImageFactory {
     elem.src = "resources/" + str
     JSImageElement(elem).promiseLoad()
   }
+  def fromDataURL(str: String): IO[Image] = IO {
+    val elem = document.createElement("img").asInstanceOf[HTMLImageElement]
+    elem.src = str
+    JSImageElement(elem)
+  }
 }

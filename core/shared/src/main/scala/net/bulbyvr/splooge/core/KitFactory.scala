@@ -224,7 +224,7 @@ object Splooge1KitGen extends KitFactory {
   private lazy val splooge1Font = FontInfo("Splatoon1", "font/splatoon1.otf", 0)
   private lazy val michromaFont = FontInfo("Michroma", "font/michroma-regular.ttf", 0)
   private lazy val subSpFont = michromaFont.copy(size = 20)
-  private val fontTransform = AffineTransform.rotation(Math.toRadians(-5))
+  private val fontTransform = AffineTransform.rotation(Math.toRadians(5))
   // me omw to derive ur mom
   override lazy val weaponFont = splooge1Font.copy(size = 32, transform = fontTransform)
   override lazy val subFont = subSpFont 

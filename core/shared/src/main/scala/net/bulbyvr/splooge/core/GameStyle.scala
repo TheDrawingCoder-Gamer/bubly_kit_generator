@@ -8,15 +8,15 @@ trait GameStyle {
 sealed trait Game extends GameStyle 
 
 object Game {
-  case object Splatoon1 extends GameStyle {
+  case object Splatoon1 extends Game {
     val name = "s"
     val longName = "Splatoon"
   }
-  case object Splatoon2 extends GameStyle {
+  case object Splatoon2 extends Game {
     val name = "s2"
     val longName = "Splatoon 2"
   }
-  case object Splatoon3 extends GameStyle {
+  case object Splatoon3 extends Game {
     val name = "s3"
     val longName = "Splatoon 3"
   }

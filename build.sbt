@@ -32,12 +32,29 @@ lazy val swing = project
     libraryDependencies += "org.typelevel" %% "cats-effect" % "3.4.8",
 
   )
-val copyToTarget = TaskKey[Unit]("copyToTarget")
+
+val webTarget = settingKey[File]("webTarget")
+val tearDownWeb = TaskKey[Unit]("tearDownWeb")
+val linkJSDir = TaskKey[File]("linkJSDir")
+val fastCopyWeb = TaskKey[Unit]("fastCopyWeb")
+val fullCopyWeb = TaskKey[Unit]("fullCopyWeb")
 
 val fastBuild = TaskKey[Unit]("fastBuild")
 val fullBuild = TaskKey[Unit]("fullBuild")
-val fastRemove = TaskKey[Unit]("fastRemove")
-ThisBuild / fastRemove := IO.delete(new File((web / Compile / fastLinkJSOutput).value, "resources"))
+
+def tearDownImpl(targetDir: File) = {
+    if (Files.exists(targetDir.toPath))
+      IO.delete(targetDir)
+}
+def copyImpl(linkDir: File, targetDir: File, baseDir: File) = {
+    if (!Files.exists(targetDir.toPath))
+      IO.createDirectory(targetDir)
+    IO.copyDirectory(linkDir, targetDir)
+    IO.copyDirectory(file("resources"), new File(targetDir, "resources"))
+    IO.copyDirectory(new File(baseDir, "web"), targetDir)
+  }
+ThisBuild / resolvers +=
+  "Sonatype OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 lazy val web = project
   .enablePlugins(ScalaJSPlugin)
   .enablePlugins(ScalablyTypedConverterPlugin)
@@ -46,21 +63,30 @@ lazy val web = project
   .settings(
     name := "splooge_web",
     version := "0.1.0-SNAPSHOT",
-    libraryDependencies += "com.armanbilge" %%% "calico" % "0.2.0-RC1",
+    libraryDependencies += "com.armanbilge" %%% "calico" % "0.2-1f61455-SNAPSHOT",
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.4.0",
     scalaJSUseMainModuleInitializer := true,
-    copyToTarget := {
-      (Compile / fastLinkJS).value
-      IO.copyDirectory(file("resources"), new File((Compile / fastLinkJSOutput).value, "resources"))
-      IO.copyFile(new File(baseDirectory.value, "index.html"), new File((Compile / fastLinkJSOutput).value, "index.html"))
+    webTarget := new File((Compile / target).value, "webpage"),
+    
+    fastCopyWeb := copyImpl((Compile / fastLinkJSOutput).value, webTarget.value, baseDirectory.value),
+    fullCopyWeb := copyImpl((Compile / fullLinkJSOutput).value, webTarget.value, baseDirectory.value),
+    tearDownWeb := tearDownImpl(webTarget.value),
+    fastBuild := {
+      Def.sequential(
+        tearDownWeb,
+        Compile / fastLinkJS,
+        fastCopyWeb
+      ).value 
+    },
+    fullBuild := {
+      Def.sequential(
+        tearDownWeb,
+        Compile / fullLinkJS,
+        fullCopyWeb,
+
+      ).value
     }
   )
 lazy val root = project
   .aggregate(core.jvm, swing)
 
-ThisBuild / fastBuild := {
-  Def.sequential(
-  ThisBuild / fastRemove,
-  web / Compile / copyToTarget
-  ).value
-}
