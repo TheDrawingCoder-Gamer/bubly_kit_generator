@@ -1,8 +1,10 @@
 package net.bulbyvr.splooge.core
 
 import net.bulbyvr.splooge.core.util.*
+import cats.effect.IO
+import cats.implicits.*
 trait KitFactory {
-  protected def kit : Image
+  protected def kit : IO[Image]
   protected def canvasSize : (Int, Int)
   protected def subSize : Int 
   protected def specialSize : Int 
@@ -22,113 +24,131 @@ trait KitFactory {
   protected def spPointsTextPos : (Int, Int)
   protected def renderSubShadow : Boolean = false
   protected def renderSpecialShadow : Boolean = false 
-  private def makeShadow(loadImg: Image): Image = {
+  private def makeShadow(loadImg: Image): IO[Image] = {
     val img = Image(loadImg.width, loadImg.height)
     val canvas = img.getCanvas()
-    canvas.drawImage(loadImg, 0, 0)
-    canvas.setComposite(CompositeMode.SrcIn)
-    canvas.setColor(Color(0, 0, 0, 255))
-    canvas.fillRect(0, 0, loadImg.width, loadImg.height)
-    canvas.setColor(Color(0, 0, 0, 100))
-    canvas.fillRect(0, 0, loadImg.width, loadImg.height)
-    canvas.complete()
+    for {
+      _ <- canvas.drawImage(loadImg, 0, 0)
+      _ <- canvas.setComposite(CompositeMode.SrcIn)
+      _ <- canvas.setColor(Color(0, 0, 0, 255))
+      _ <- canvas.fillRect(0, 0, loadImg.width, loadImg.height)
+      _ <- canvas.setColor(Color(0, 0, 0, 100))
+      _ <- canvas.fillRect(0, 0, loadImg.width, loadImg.height)
+      i <- canvas.complete()
+    } yield i
   }
   def renderKit(mainName: String, mainImage: Image, subName: String, subImage: Image,
-    specialName: String, specialImage: Image, specialPoints: Option[String], brand: Option[Image]): Image = {
+    specialName: String, specialImage: Image, specialPoints: Option[String], brand: Option[Image]): IO[Image] = {
     val (canvasW, canvasH) = canvasSize
     val img = Image(canvasW, canvasH)
     val canvas = img.getCanvas()
-    val kit = this.kit
     val (mainX, mainY) = mainPos
     val (subX, subY) = subPos
     val (specialX, specialY) = specialPos
-    val shadow = makeShadow(mainImage)
     val widthPng = mainSize
     val brandSize = widthPng / 2d
     val brandOffset = brandSize 
     val brandX = mainX + brandOffset 
     val brandY = mainY + brandOffset
 
-    val widthSubPng = subSize 
-    val widthSpecialPng = specialSize
-
-    val mainTransform = AffineTransform.translation(mainX, mainY)
-    mainTransform.scale(widthPng.toDouble / mainImage.width, widthPng.toDouble / mainImage.width)
-
-    val transform = AffineTransform.scaling(widthPng.toDouble / shadow.width, (widthPng * 0.75) / shadow.width)
-    transform.prepend(AffineTransform.translation(mainX, mainY + (widthPng.toDouble / 4)))
-    val kitScaling = kitWidth.toDouble / kit.width
     val (kitX, kitY) = kitPos
 
-    val kitTransform = AffineTransform.translation(kitX, kitY)
-    kitTransform.scale(kitScaling, kitScaling)
-
-    val subTransform = AffineTransform.translation(subX, subY)
+    val widthSubPng = subSize 
+    val widthSpecialPng = specialSize
     val subScaling = widthSubPng.toDouble / subImage.width
-    subTransform.scale(subScaling, subScaling)
-
-    val specialTransform = AffineTransform.translation(specialX, specialY)
     val specialScaling = widthSpecialPng.toDouble / specialImage.width
-    specialTransform.scale(specialScaling, specialScaling)
-    canvas.setInterpMode(InterpMode.Linear)
-    canvas.drawImage(kit, kitTransform)
-    canvas.drawImage(shadow, transform)
-    canvas.drawImage(mainImage, mainTransform)
-    brand match {
-      case None => ()
-      case Some(b) => {
+
+    val (mainTxtX, mainTxtY) = weaponTextPos
+
+    val (subFontX, subFontY) = subTextPos
+
+    val (spFontX, spFontY) = specialTextPos
+      
+    val (spX, spY) = spPointsTextPos
+
+    for {
+      shadow <- makeShadow(mainImage)
+      kit <- this.kit
+
+      kitScaling = kitWidth.toDouble / kit.width
+      mainTransform = AffineTransform.translation(mainX, mainY)
+      shadowTransform = AffineTransform.scaling(widthPng.toDouble / shadow.width, (widthPng * 0.75) / shadow.width)
+      kitTransform = AffineTransform.translation(kitX, kitY)
+      subTransform = AffineTransform.translation(subX, subY)
+      specialTransform = AffineTransform.translation(specialX, specialY)
+      _ <- IO {
+        mainTransform.scale(widthPng.toDouble / mainImage.width, widthPng.toDouble / mainImage.width)
+        shadowTransform.prepend(AffineTransform.translation(mainX, mainY + (widthPng.toDouble / 4)))
+        kitTransform.scale(kitScaling, kitScaling)
+        subTransform.scale(subScaling, subScaling)
+        specialTransform.scale(specialScaling, specialScaling)
+      }
+      // hangs some point after this point
+      _ <- canvas.setInterpMode(InterpMode.Linear)
+      _ <- canvas.drawImage(kit, kitTransform)
+      _ <- canvas.drawImage(shadow, shadowTransform)
+      _ <- canvas.drawImage(mainImage, mainTransform)
+      _ <- brand.traverse { b => 
         val brandTransform = AffineTransform.translation(brandX, brandY)
 
         brandTransform.scale(brandSize.toDouble / b.width, brandSize.toDouble / b.width)
-
         canvas.drawImage(b, brandTransform)
       }
-    }
-    if (renderSubShadow) {
-      val subShadow = makeShadow(subImage)
-      val shadowTransform = subTransform.copy()
-      shadowTransform.prepend(AffineTransform.translation(0, widthSubPng.toDouble / 4))
-      shadowTransform.scale(1, 0.75)
-      canvas.drawImage(subShadow, shadowTransform)
-    }
-    if (renderSpecialShadow) {
-      val spShadow = makeShadow(specialImage)
-      val shadowTransform = specialTransform.copy()
+      _ <- 
+        if (renderSubShadow) {
+          for {
+            subShadow <- makeShadow(subImage)
+            shadowTransform = subTransform.copy()
+            _ = {
+              shadowTransform.prepend(AffineTransform.translation(0, widthSubPng.toDouble / 4))
+              shadowTransform.scale(1, 0.75)
+            }
+            _ <- canvas.drawImage(subShadow, shadowTransform)
+          } yield ()
+        } else IO(())
+      _ <- 
+        if (renderSpecialShadow) {
+          for {
+            spShadow <- makeShadow(specialImage)
+            shadowTransform = specialTransform.copy()
+            _ = {
+              shadowTransform.prepend(AffineTransform.translation(0, widthSpecialPng.toDouble / 4))
+              shadowTransform.scale(1, 0.75)
+            }
+            _ <- canvas.drawImage(spShadow, shadowTransform)
+          } yield ()
+        } else IO(())
+      _ <- canvas.drawImage(subImage, subTransform)
+      _ <- canvas.drawImage(specialImage, specialTransform)
+      _ <- canvas.doFontAliasing(true)
+      _ <- canvas.setFont(weaponFont)
+      _ <- canvas.setColor(Color(255, 255, 255, 255))
+      _ <- canvas.drawString(mainName, mainTxtX, mainTxtY)
+      _ <- canvas.setFont(subFont)
+      _ <- canvas.drawString(subName, subFontX, subFontY)
+      _ <- canvas.setFont(specialFont)
+      _ <- canvas.drawString(specialName, spFontX, spFontY)
+      _ <- specialPoints match {
+        case Some(p) =>
+          for {
+            _ <- canvas.setFont(spPointsFont)
+            _ <- canvas.drawString(p + "p", spX, spY)
+          } yield ()
+        case None => IO(())
+      }
+      complete <- canvas.complete()
+    } yield complete
 
-      shadowTransform.prepend(AffineTransform.translation(0, widthSubPng.toDouble / 4))
-      shadowTransform.scale(1, 0.75)
 
-      canvas.drawImage(spShadow, shadowTransform)
-    }
-    canvas.drawImage(subImage, subTransform)
-    canvas.drawImage(specialImage, specialTransform)
-    canvas.doFontAliasing(true)
-    canvas.setFont(weaponFont)
-    canvas.setColor(Color(255, 255, 255, 255))
-    val (mainTxtX, mainTxtY) = weaponTextPos
-    canvas.drawString(mainName, mainTxtX, mainTxtY)
 
-    canvas.setFont(subFont)
-    val (subFontX, subFontY) = subTextPos
-    canvas.drawString(subName, subFontX, subFontY)
 
-    canvas.setFont(specialFont)
-    val (spFontX, spFontY) = specialTextPos
-    canvas.drawString(specialName, spFontX, spFontY)
 
-    specialPoints match {
-      case Some(p) => 
-        canvas.setFont(spPointsFont)
-        val (spX, spY) = spPointsTextPos
-        canvas.drawString(p + "p", spX, spY)
-      case None => ()
-    }
-    canvas.complete()
+
   }
 } 
 object Splooge3KitGen extends KitFactory {
   // TODO: is holding an image in memory really worth it?
-  override lazy val kit = Image.loadFromResource("ui/s3_kit_backdrop.png")
+  override def kit = Image.loadFromResource("ui/s3_kit_backdrop.png")
   override val kitWidth = 676
   override val canvasSize = (686, 507)
   private val subSpSize = 62 
@@ -142,8 +162,8 @@ object Splooge3KitGen extends KitFactory {
   override val subPos = (subSpX, subY)
   override val specialPos = (subSpX, specialY)
   override val kitPos = (0, 0)
-  private lazy val splooge1Font = FontInfo("font/splatoon1.otf", 0)
-  private lazy val splooge2Font = FontInfo("font/splatoon2.otf", 0)
+  private lazy val splooge1Font = FontInfo("Splatoon1", "font/splatoon1.otf", 0)
+  private lazy val splooge2Font = FontInfo("Splatoon2", "font/splatoon2.otf", 0)
   private lazy val subSpFont = splooge2Font.copy(size = 25)
   override lazy val weaponFont = splooge1Font.copy(size = 32)
   override lazy val subFont = subSpFont 
@@ -157,7 +177,7 @@ object Splooge3KitGen extends KitFactory {
 }
 object Splooge2KitGen extends KitFactory {
   // TODO: is holding an image in memory really worth it?
-  override lazy val kit = Image.loadFromResource("ui/s2_kit_backdrop.png")
+  override def kit = Image.loadFromResource("ui/s2_kit_backdrop.png")
   override val kitWidth = 676
   override val canvasSize = (686, 600)
   private val subSpSize = 100 
@@ -171,7 +191,7 @@ object Splooge2KitGen extends KitFactory {
   override val subPos = (subSpX, subY)
   override val specialPos = (subSpX, specialY)
   override val kitPos = (0, 0)
-  private lazy val splooge2Font = FontInfo("font/splatoon2.otf", 0)
+  private lazy val splooge2Font = FontInfo("Splatoon2", "font/splatoon2.otf", 0)
   private lazy val subSpFont = splooge2Font.copy(size = 28)
   override lazy val weaponFont = splooge2Font.copy(size = 35)
   override lazy val subFont = subSpFont 
@@ -186,7 +206,7 @@ object Splooge2KitGen extends KitFactory {
 }
 object Splooge1KitGen extends KitFactory {
   // TODO: is holding an image in memory really worth it?
-  override lazy val kit = Image.loadFromResource("ui/s_kit_backdrop.png")
+  override def kit = Image.loadFromResource("ui/s_kit_backdrop.png")
   override val kitWidth = 676
   override val canvasSize = (686, 507)
   private val subSpSize = 64 
@@ -201,8 +221,8 @@ object Splooge1KitGen extends KitFactory {
   override val subPos = (subX, subY)
   override val specialPos = (specialX, specialY)
   override val kitPos = (0, 0)
-  private lazy val splooge1Font = FontInfo("font/splatoon1.otf", 0)
-  private lazy val michromaFont = FontInfo("font/michroma-regular.ttf", 0)
+  private lazy val splooge1Font = FontInfo("Splatoon1", "font/splatoon1.otf", 0)
+  private lazy val michromaFont = FontInfo("Michroma", "font/michroma-regular.ttf", 0)
   private lazy val subSpFont = michromaFont.copy(size = 20)
   private val fontTransform = AffineTransform.rotation(Math.toRadians(-5))
   // me omw to derive ur mom

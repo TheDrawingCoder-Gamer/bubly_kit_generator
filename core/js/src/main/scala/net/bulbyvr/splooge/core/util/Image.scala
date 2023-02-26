@@ -2,6 +2,14 @@ package net.bulbyvr.splooge.core.util
 
 import org.scalajs.dom.{HTMLCanvasElement, CanvasRenderingContext2D, HTMLImageElement, document}
 import org.scalajs.dom.HTMLElement
+import cats.effect.IO
+import scala.scalajs.js.Promise
+import scala.util.Try
+import typings.cssFontLoadingModule.*
+import typings.cssFontLoadingModule.mod.global.FontFace
+import typings.cssFontLoadingModule.mod.global.FontFaceCls
+import typings.cssFontLoadingModule.mod.global.FontFaceDescriptors
+import scala.scalajs.js
 sealed trait JSImage extends Image
 class JSImageElement(val inner: HTMLImageElement) extends JSImage {
   def width = inner.width
@@ -11,22 +19,33 @@ class JSImageElement(val inner: HTMLImageElement) extends JSImage {
     val ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     JSCanvas(canvas, ctx)
   }
+  def promiseLoad(): IO[JSImageElement] = {
+    if (inner.complete)
+      IO(this)
+    else {
+      IO.fromPromise(IO(Promise((resolve, reject) => {
+        inner.addEventListener("load", (event) => resolve(this))
+        inner.addEventListener("error", reject.apply _)
+      })))
+    }
+  }
 }
 class JSImageCanvas(val inner: HTMLCanvasElement) extends JSImage {
-  def width = inner.clientWidth
-  def height = inner.clientHeight
+  def width = inner.width
+  def height = inner.height
   def getCanvas() = {
     val ctx = inner.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     JSCanvas(inner, ctx)
   }
 }
 class JSCanvas(val inner: HTMLCanvasElement, val context: CanvasRenderingContext2D) extends Canvas {
-  var curFont: FontInfo = null
-  def complete() = {
+  var curFont: FontFace = null
+  var curInfo: FontInfo = null
+  def complete() = IO {
     JSImageCanvas(inner)
   }
-  def doFontAliasing(value: Boolean): Unit = ()
-  def setInterpMode(mode: InterpMode): Unit = {
+  def doFontAliasing(value: Boolean): IO[Unit] = IO(())
+  def setInterpMode(mode: InterpMode): IO[Unit] = IO {
     mode match {
       case InterpMode.Linear =>
         context.imageSmoothingEnabled = true
@@ -34,7 +53,7 @@ class JSCanvas(val inner: HTMLCanvasElement, val context: CanvasRenderingContext
         context.imageSmoothingEnabled = false
     }
   }
-  def setComposite(mode: CompositeMode): Unit = {
+  def setComposite(mode: CompositeMode): IO[Unit] = IO {
     val good = mode match {
       case CompositeMode.SrcOver => 
         "source-over"
@@ -55,34 +74,55 @@ class JSCanvas(val inner: HTMLCanvasElement, val context: CanvasRenderingContext
     }
     context.globalCompositeOperation = good
   }
-  def drawImage(image: Image, x: Int, y: Int): Unit = {
-    val elem: HTMLElement = image.asInstanceOf[JSImage] match {
-      case img: JSImageElement => img.inner
-      case canvas: JSImageCanvas => canvas.inner
+  def drawImage(image: Image, x: Int, y: Int): IO[Unit] = {
+    val elem: IO[HTMLElement] = image.asInstanceOf[JSImage] match {
+      case img: JSImageElement => img.promiseLoad().map(_.inner)
+      case canvas: JSImageCanvas => IO(canvas.inner)
     }
-    context.drawImage(elem, x, y)
+    elem.map(it => context.drawImage(it, x, y))
   }
-  def drawImage(image: Image, transform: AffineTransform): Unit = {
+  def withTransform[T](transform: AffineTransform)(fn: => T): T = {
     context.setTransform(transform.m00, transform.m01, transform.m10, transform.m11, transform.m20, transform.m21)
-    val elem: HTMLElement = image.asInstanceOf[JSImage] match {
-      case img: JSImageElement => img.inner
-      case canvas: JSImageCanvas => canvas.inner
-    }
-    context.drawImage(elem, 0, 0)
+    val res = fn
     context.setTransform(1, 0, 0, 1, 0, 0)
+    res
   }
-  def fillRect(x: Int, y: Int, width: Int, height: Int): Unit = {
+  def drawImage(image: Image, transform: AffineTransform): IO[Unit] = {
+    for {
+      elem: HTMLElement <- image.asInstanceOf[JSImage] match {
+        case img: JSImageElement => img.promiseLoad().map(_.inner)
+        case canvas: JSImageCanvas => IO(canvas.inner)
+      }
+      _ <- IO(withTransform(transform) { context.drawImage(elem, 0, 0) })
+    } yield ()
+  }
+  def fillRect(x: Int, y: Int, width: Int, height: Int): IO[Unit] = IO {
     context.fillRect(x, y, width, height)
   }
-  def setColor(color: Color): Unit = {
-    val str = s"rgb(${color.r}, ${color.g}, ${color.b}, ${color.a})"
+  def setColor(color: Color): IO[Unit] = IO {
+    val str = s"rgb(${color.r}, ${color.g}, ${color.b}, ${color.a.toDouble / 255})"
     context.fillStyle = str
   }
-  def setFont(font: FontInfo): Unit = {
-    curFont = font
-
+  def setFont(font: FontInfo): IO[Unit] = {
+    val fontFace = FontFaceCls(font.name, s"url(resources/${font.path})")
+    for {
+      _ <- IO(this.curInfo = font)
+      face <- IO.fromPromise(IO(fontFace.load())).flatMap(it => IO.fromPromise(IO(it.loaded)))
+      _ <- IO(this.curFont = face)
+      _ <- IO(document.asInstanceOf[js.Dynamic].fonts.add(face))
+      css = s"${font.size}px ${font.name}"
+      _ <- IO(context.font = css)
+    } yield ()
   }
-  def drawString(txt: String, x: Int, y: Int): Unit = {
-    context.fillText(txt, x, y)
+  def drawString(txt: String, x: Int, y: Int): IO[Unit] = IO {
+
+    context.textBaseline = "top"
+    // hack
+    val t = AffineTransform.translation(x, y + (curInfo.size / 2))
+    t += curInfo.transform 
+    withTransform(t) {
+      context.fillText(txt, 0, 0)
+    }
   }
 }
+

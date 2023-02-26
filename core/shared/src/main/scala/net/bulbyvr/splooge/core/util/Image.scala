@@ -1,5 +1,6 @@
 package net.bulbyvr.splooge.core.util
 
+import cats.effect.*
 trait Image {
   def width: Int
   def height: Int
@@ -24,15 +25,15 @@ enum InterpMode {
 }
 
 trait Canvas {
-  def fillRect(x: Int, y: Int, width: Int, height: Int): Unit
-  def drawImage(image: Image, x: Int, y: Int): Unit
-  def drawImage(image: Image, transform: AffineTransform): Unit
-  def setColor(color: Color): Unit
-  def setComposite(mode: CompositeMode): Unit
-  def setFont(font: FontInfo): Unit
-  def drawString(txt: String, x: Int, y: Int): Unit
-  def setInterpMode(mode: InterpMode): Unit
-  def doFontAliasing(value: Boolean): Unit
-  def complete(): Image
+  def fillRect(x: Int, y: Int, width: Int, height: Int): IO[Unit]
+  def drawImage(image: Image, x: Int, y: Int): IO[Unit]
+  def drawImage(image: Image, transform: AffineTransform): IO[Unit]
+  def setColor(color: Color): IO[Unit]
+  def setComposite(mode: CompositeMode): IO[Unit]
+  def setFont(font: FontInfo): IO[Unit]
+  def drawString(txt: String, x: Int, y: Int): IO[Unit]
+  def setInterpMode(mode: InterpMode): IO[Unit]
+  def doFontAliasing(value: Boolean): IO[Unit]
+  def complete(): IO[Image]
 }
 

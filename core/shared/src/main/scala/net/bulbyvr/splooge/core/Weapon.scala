@@ -2,7 +2,15 @@ package net.bulbyvr.splooge.core
 
 import scala.collection.mutable as mut 
 import scala.collection.immutable.ListMap
-case class WeaponStyle(game: GameStyle, name: StyleName)
+case class WeaponStyle(game: GameStyle, name: StyleName) {
+  def pretty: String = {
+    val daName = name match {
+      case StyleName.Named(name) => name 
+      case StyleName.Empty => ""
+    }
+    s"${game.name} ${daName}"
+  }
+}
 
 case class Weapon(name: String, styles: Seq[WeaponStyle])
 type WeaponStyles = Seq[WeaponStyle]

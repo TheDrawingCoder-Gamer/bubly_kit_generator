@@ -7,6 +7,8 @@ import scala.collection.mutable as mut
 import java.awt.Toolkit
 import net.bulbyvr.splooge.core.*
 import net.bulbyvr.splooge.core.util.JVMImage
+import cats.effect.unsafe.implicits.*
+import cats.effect.IO
 case class ItemLocation(val path : String, val internal : Boolean) {
   def asBufferedImage = 
     if (internal) 
@@ -301,7 +303,7 @@ object SwingApp {
               }
                
               val kit = renderer(mainName, JVMImage(mainImage), subName, JVMImage(sub), specialName, JVMImage(special), None, brand.map(it => JVMImage(it)))
-              write(kit.asInstanceOf[JVMImage].inner)
+              write(kit.unsafeRunSync().asInstanceOf[JVMImage].inner)
         }
         val generateButton = new Button("Generate!") {
           reactions += {
