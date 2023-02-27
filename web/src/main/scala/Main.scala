@@ -38,39 +38,51 @@ def GameDropdown(game: SignallingRef[IO, GameStyle], games: Signal[IO, Seq[GameS
   }
 }
 def OtherWeaponDropdowns(weapon: SignallingRef[IO, OtherWeapon], game: SignallingRef[IO, GameStyle], 
-  selectedFile: SignallingRef[IO, Option[String]], weapons: List[OtherWeapon]): Resource[IO, HtmlElement[IO]] = { 
+  selectedFile: SignallingRef[IO, Option[String]], name: SignallingRef[IO, Option[String]], weapons: List[OtherWeapon]): Resource[IO, HtmlElement[IO]] = { 
     val curGames = weapon.map(_.games)
     div(
-      img(
-        src <-- (weapon.asInstanceOf[Signal[IO, OtherWeapon]], game, selectedFile).tupled.map((w, g, f) => 
-            f match {
-              case Some(value) => value 
-              case None => "resources/" + otherPath(w, g)
-            }),
-        widthAttr := 64,
-        heightAttr := 64,
-        ),
-      select.withSelf { self => 
+      input.withSelf { self =>
         (
-          weapons.map(w => option(value := w.name, w.name)),
-          value <-- weapon.map(_.name),
+          tpe := "text",
+          value <-- name.map(_.getOrElse("")),
           onChange --> {
-            _.evalMap(_ => self.value.get).map(it => weapons.find(_.name == it)).unNone.foreach(it => weapon.set(it) *> game.set(it.games.head) *> selectedFile.set(None))
+            _.evalMap(_ => self.value.get).map(it => if (it == "") None else Some(it)).foreach(name.set)
           }
           )
       },
-      GameDropdown(game, curGames, selectedFile),
-      ImageGroup(selectedFile),
-      )
+      div(
+        img(
+          src <-- (weapon.asInstanceOf[Signal[IO, OtherWeapon]], game, selectedFile).tupled.map((w, g, f) => 
+              f match {
+                case Some(value) => value 
+                case None => "resources/" + otherPath(w, g)
+              }),
+          widthAttr := 64,
+          heightAttr := 64,
+          ),
+        select.withSelf { self => 
+          (
+            weapons.map(w => option(value := w.name, w.name)),
+            value <-- weapon.map(_.name),
+            onChange --> {
+              _.evalMap(_ => self.value.get).map(it => weapons.find(_.name == it)).unNone.foreach(it => weapon.set(it) *> game.set(it.games.head) *> selectedFile.set(None))
+            }
+            )
+        },
+        GameDropdown(game, curGames, selectedFile),
+        ImageGroup(selectedFile),
+        )
+    )
 }
 def BuildOtherWeaponDropdowns(weapons: Seq[OtherWeapon]): IO[(SignallingRef[IO, OtherWeapon], SignallingRef[IO, GameStyle], 
-  SignallingRef[IO, Option[String]], Resource[IO, HtmlElement[IO]])] = {
+  SignallingRef[IO, Option[String]], SignallingRef[IO, Option[String]], Resource[IO, HtmlElement[IO]])] = {
   for {
     weapon <- SignallingRef[IO].of(weapons.head)
     game <- SignallingRef[IO].of(weapons.head.games.head)
     image <- SignallingRef[IO].of[Option[String]](None)
-    dropdown <- IO(OtherWeaponDropdowns(weapon, game, image, weapons.toList))
-  } yield (weapon, game, image, dropdown)
+    name <- SignallingRef[IO].of[Option[String]](None)
+    dropdown <- IO(OtherWeaponDropdowns(weapon, game, image, name, weapons.toList))
+  } yield (weapon, game, image, name, dropdown)
 }
 def inputFiles[F[_]](input: HtmlInputElement[F])(using Async[F]): Ref[F, dom.FileList] = {
   new WrappedRef(() => input.asInstanceOf[dom.HTMLInputElement].files, input.asInstanceOf[dom.HTMLInputElement].files = _)
@@ -98,61 +110,74 @@ def ImageGroup(image: SignallingRef[IO, Option[String]]): Resource[IO, HtmlEleme
 }
 def MainWeaponDropdowns(weapon: SignallingRef[IO, Weapon], style: SignallingRef[IO, WeaponStyle], do2D: SignallingRef[IO, Boolean], 
   selectedFile: SignallingRef[IO, Option[String]],
+  name: SignallingRef[IO, Option[String]],
   weapons: List[Weapon]): Resource[IO, HtmlElement[IO]] = {
   val styles = weapon.map(_.styles)
   div(
-    img(
-      src <-- (weapon.asInstanceOf[Signal[IO, Weapon]], style, do2D, selectedFile).tupled.discrete.evalMap((w, s, d, f) =>
-          f match {
-            case None => weaponPath(w, s, d).map("resources/" + _)
-            case Some(value) => IO.pure(value)
-          }
-          ).holdResource("resources/unknown.png"),
-      widthAttr := 64,
-      heightAttr := 64
-      ),
-    select.withSelf { self =>
+    input.withSelf { self =>
       (
-        weapons.map(w => option(value := w.name, w.name)),
-        value <-- weapon.map(_.name),
+        tpe := "text",
+        value <-- name.map(_.getOrElse("")),
         onChange --> {
-          _.evalMap(_ => self.value.get).map(it => weapons.find(_.name == it)).unNone.foreach(it => weapon.set(it) *> style.set(it.styles.head) *> selectedFile.set(None))
-        }
-      )
-    },
-    select.withSelf { self =>
-      (
-        children <-- styles.map(_.traverse(s => option(value := s.pretty, s.pretty)).map(_.toList)),
-        value <-- style.map(_.pretty),
-        onChange --> {
-          _.evalMap(_ => self.value.get).evalMap[IO, Option[WeaponStyle]](it => styles.map(_.find(_.pretty == it)).get).unNone.foreach(it => style.set(it) *> selectedFile.set(None))
+          _.evalMap(_ => self.value.get).map(it => if (it == "") None else Some(it)).foreach(name.set)
         }
         )
     },
-    p(
-      "Flat icons",
-      input.withSelf { self =>
+    div(
+      img(
+        src <-- (weapon.asInstanceOf[Signal[IO, Weapon]], style, do2D, selectedFile).tupled.discrete.evalMap((w, s, d, f) =>
+            f match {
+              case None => weaponPath(w, s, d).map("resources/" + _)
+              case Some(value) => IO.pure(value)
+            }
+            ).holdResource("resources/unknown.png"),
+        widthAttr := 64,
+        heightAttr := 64
+        ),
+      select.withSelf { self =>
         (
-          tpe := "checkbox",
-          checked <-- do2D,
+          weapons.map(w => option(value := w.name, w.name)),
+          value <-- weapon.map(_.name),
           onChange --> {
-            _.evalMap(_ => self.checked.get).foreach(do2D.set)
+            _.evalMap(_ => self.value.get).map(it => weapons.find(_.name == it)).unNone.foreach(it => weapon.set(it) *> style.set(it.styles.head) *> selectedFile.set(None))
           }
         )
-      }
-    ),
-    ImageGroup(selectedFile) 
-    )
+      },
+      select.withSelf { self =>
+        (
+          children <-- styles.map(_.traverse(s => option(value := s.pretty, s.pretty)).map(_.toList)),
+          value <-- style.map(_.pretty),
+          onChange --> {
+            _.evalMap(_ => self.value.get).evalMap[IO, Option[WeaponStyle]](it => styles.map(_.find(_.pretty == it)).get).unNone.foreach(it => style.set(it) *> selectedFile.set(None))
+          }
+          )
+      },
+      p(
+        "Flat icons",
+        input.withSelf { self =>
+          (
+            tpe := "checkbox",
+            checked <-- do2D,
+            onChange --> {
+              _.evalMap(_ => self.checked.get).foreach(do2D.set)
+            }
+          )
+        }
+      ),
+      ImageGroup(selectedFile) 
+      )
+  )
 }
 def BuildMainWeaponDropdowns(weapons: Seq[Weapon]): IO[(SignallingRef[IO, Weapon], SignallingRef[IO, WeaponStyle], SignallingRef[IO, Boolean], 
-  SignallingRef[IO, Option[String]], Resource[IO, HtmlElement[IO]])] = {
+  SignallingRef[IO, Option[String]], SignallingRef[IO, Option[String]], Resource[IO, HtmlElement[IO]])] = {
   for {
     weapon <- SignallingRef[IO].of(weapons.head)
     style <- SignallingRef[IO].of(weapons.head.styles.head)
     do2D <- SignallingRef[IO].of(false)
     selectedFile <- SignallingRef[IO].of[Option[String]](None)
-    dropdown <- IO(MainWeaponDropdowns(weapon, style, do2D, selectedFile, weapons.toList))
-  } yield (weapon, style, do2D, selectedFile, dropdown)
+    name <- SignallingRef[IO].of[Option[String]](None)
+    dropdown <- IO(MainWeaponDropdowns(weapon, style, do2D, selectedFile, name, weapons.toList))
+  } yield (weapon, style, do2D, selectedFile, name, dropdown)
 }
 def OnlyGameDropdown[T <: GameStyle](game: SignallingRef[IO, T], games: List[T]): Resource[IO, HtmlElement[IO]] = {
     div(
@@ -273,7 +298,8 @@ def loadImage(str: dom.File): IO[String] = {
 }
 def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subGame: GameStyle, 
   special: OtherWeapon, spGame: GameStyle, twodim: Boolean, kit: Game, brand: String,
-  selectedMain: Option[String], selectedSub: Option[String], selectedSpecial: Option[String], spPoints: Option[String]): IO[JSImageCanvas] = {
+  selectedMain: Option[String], selectedSub: Option[String], selectedSpecial: Option[String], spPoints: Option[String],
+  mainName: Option[String], subName: Option[String], spName: Option[String]): IO[JSImageCanvas] = {
   val renderer = 
     kit match {
       case Splatoon1 => Splooge1KitGen.renderKit
@@ -286,23 +312,26 @@ def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subG
       case value => 
         Some(value.replace(' ', '_'))
     }
+  val daMainName = mainName.getOrElse(mainWeapon.name)
+  val daSubName = subName.getOrElse(sub.name)
+  val daSpName = spName.getOrElse(special.name)
   for {
     mainImg <- selectedMain.map(Image.fromDataURL _).getOrElse(weaponPath(mainWeapon, mainStyle, twodim) >>= Image.loadFromResource)
     subImg <- selectedSub.map(Image.fromDataURL).getOrElse(Image.loadFromResource(otherPath(sub, subGame)))
     spImg <- selectedSpecial.map(Image.fromDataURL).getOrElse(Image.loadFromResource(otherPath(special, spGame)))
     brandImg <- brandName.traverse(it => Image.loadFromResource(s"brands/${it}.png"))
-    res <- renderer(mainWeapon.name, mainImg, sub.name, subImg, special.name, spImg, spPoints, brandImg)
+    res <- renderer(daMainName, mainImg, daSubName, subImg, daSpName, spImg, spPoints, brandImg)
   } yield res.asInstanceOf[JSImageCanvas]
 }
 object App extends IOWebApp {
   def render: Resource[cats.effect.IO, HtmlElement[cats.effect.IO]] = 
     for {
       mainDropdownsGroup <- BuildMainWeaponDropdowns(Mains.weapons).toResource
-      (mainWeapon, mainStyle, do2D, selectedMain, mainDropdowns) = mainDropdownsGroup
+      (mainWeapon, mainStyle, do2D, selectedMain, mainName, mainDropdowns) = mainDropdownsGroup
       subDropdownsGroup <- BuildOtherWeaponDropdowns(Subs.weapons).toResource
-      (sub, subGame, subImage, subDropdowns) = subDropdownsGroup
+      (sub, subGame, subImage, subName, subDropdowns) = subDropdownsGroup
       spDropdownsGroup <- BuildOtherWeaponDropdowns(Specials.weapons).toResource
-      (special, spGame, spImage, spDropdowns) = spDropdownsGroup
+      (special, spGame, spImage, spName, spDropdowns) = spDropdownsGroup
       kitDropdownGroup <- BuildGameDropdown[Game](Game.AllGames.toList).toResource
       (kit, kitDropdown) = kitDropdownGroup
       brandDropdownGroup <- BuildBrandDropdown(Brands.brands.prepended("None").toList).toResource
@@ -333,11 +362,16 @@ object App extends IOWebApp {
               _.evalMap { _ =>
                 (mainWeapon.get, mainStyle.get, sub.get, subGame.get, special.get, 
                   spGame.get, do2D.get, kit.get, brand.get, selectedMain.get,
-                  subImage.get, spImage.get, spPoints.get).tupled
-              }.evalMap { (main, mainStyle, sub, subGame, special, spGame, do2D, kit, brand, selectedMain, subImage, spImage, spPoints) =>
+                  subImage.get, spImage.get, spPoints.get,
+                  mainName.get, subName.get, spName.get).tupled
+              }.evalMap { (main, mainStyle, sub, subGame, special, spGame, do2D, kit, 
+                brand, selectedMain, subImage, spImage, spPoints,
+                mainName, subName, spName) =>
                 for {
                   _ <- IO.println(main.name)
-                  img <- renderKit(main, mainStyle, sub, subGame, special, spGame, do2D, kit, brand, selectedMain, subImage, spImage, spPoints) 
+                  img <- renderKit(main, mainStyle, sub, subGame, special, spGame, do2D, kit, 
+                    brand, selectedMain, subImage, spImage, spPoints,
+                    mainName, subName, spName) 
                   data <- IO {
                     img.inner.toDataURL("image/png")
                   }
