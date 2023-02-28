@@ -8,11 +8,31 @@ case class WeaponStyle(game: GameStyle, name: StyleName) {
       case StyleName.Named(name) => name 
       case StyleName.Empty => ""
     }
-    s"${game.name} ${daName}"
+    s"${game.name} ${daName}".trim()
   }
 }
 
-case class Weapon(name: String, styles: Seq[WeaponStyle])
+case class Weapon(name: String, styles: Seq[WeaponStyle]) {
+  /**
+   * @returns a tuple containing (3dPath, 2dPath)
+   */
+  def basePath(style: WeaponStyle, twodim: Boolean): (String, String) = {
+    val wName = name.replace(' ', '_').replace('.', '_').toLowerCase()
+    val sName = style.name match {
+      case StyleName.Named(name) => StyleName.Named(name.trim().replace(' ', '_').replace('.', '_').toLowerCase())
+      case StyleName.Empty => StyleName.Empty
+    }
+    
+    val gamePrefix = style.game.name
+    val firstPath = 
+      sName match {
+        case StyleName.Named(sName) => gamePrefix + "_" + sName + "_" + wName
+        case StyleName.Empty => gamePrefix + "_" + wName
+      }
+    (s"weapons/$firstPath.png", s"weapons/${firstPath}_2d.png")
+      
+  }
+}
 type WeaponStyles = Seq[WeaponStyle]
 type AWeapon = WeaponStyles
 def Style(name : StyleName, games : Seq[GameStyle]) = 
@@ -76,12 +96,12 @@ object Mains {
       Named("Custom") ++= OldGames
   })._2
   val weapons = WeaponList(
-    new MainBuilder("52 Gal") {
+    new MainBuilder(".52 Gal") {
       Default ++= AllGames
       Named("Deco") ++= OldGames
       Named("Kensa") += Splatoon2
     },
-    new MainBuilder("96 Gal") {
+    new MainBuilder(".96 Gal") {
       Default ++= AllGames
       Named("Deco") ++= AllGames
     },
@@ -256,6 +276,8 @@ object Mains {
     },
     new MainBuilder("Splash-o-matic") {
       Default ++= AllGames
+      // 3.0.0 updated the sploosh & splash icons
+      Named("3.0.0") += Splatoon3
       Named("Neo") ++= AllGames
     },
     new MainBuilder("Splat Brella") {
@@ -320,6 +342,8 @@ object Mains {
     },
     new MainBuilder("Sploosh-o-matic") {
       Default ++= AllGames
+      // v3.0.0 changed the icon of sploosh & splash
+      Named("3.0.0") += Splatoon3
       Named("Neo") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },

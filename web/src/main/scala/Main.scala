@@ -245,23 +245,9 @@ def pathExists(path: String): IO[Boolean] = {
     )))
 }
 def weaponPath(weapon: Weapon, style : WeaponStyle, twodim : Boolean) : IO[String] = {
-  val name = weapon.name
-  val rootPath = "weapons"
-  val daName = name.replace(' ', '_').toLowerCase()
-  val gStyle =
-    style.name match {
-      case StyleName.Named(s) => StyleName.Named(s.trim().replace(' ', '_').toLowerCase())
-      case StyleName.Empty => StyleName.Empty
-    }
-  val gamePrefix = style.game.name
-  val (noDimPath, goodPath) = {
-    val firstPath = 
-      gStyle match {
-        case StyleName.Empty => gamePrefix + "_" + daName
-        case StyleName.Named(s) => gamePrefix + "_" + s + "_" + daName
-      }
-    (s"$rootPath/$firstPath.png", s"$rootPath/${firstPath}_2d.png")
-  }
+
+  val (noDimPath, goodPath) = weapon.basePath(style, twodim)
+
   for {
     path <- 
       if (twodim)
