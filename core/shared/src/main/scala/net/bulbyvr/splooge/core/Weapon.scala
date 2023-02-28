@@ -277,7 +277,7 @@ object Mains {
     new MainBuilder("Splash-o-matic") {
       Default ++= AllGames
       // 3.0.0 updated the sploosh & splash icons
-      Named("3.0.0") += Splatoon3
+      Named("Base") += Splatoon3
       Named("Neo") ++= AllGames
     },
     new MainBuilder("Splat Brella") {
@@ -343,7 +343,7 @@ object Mains {
     new MainBuilder("Sploosh-o-matic") {
       Default ++= AllGames
       // v3.0.0 changed the icon of sploosh & splash
-      Named("3.0.0") += Splatoon3
+      Named("Base") += Splatoon3
       Named("Neo") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },
