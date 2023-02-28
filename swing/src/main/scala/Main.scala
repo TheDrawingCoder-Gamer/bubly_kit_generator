@@ -222,6 +222,8 @@ object SwingApp {
         val kitStyle = new ComboBox(Seq(Game.Splatoon3, Game.Splatoon2, Game.Splatoon1))
         kitStyle.renderer = gameModel
         contents += FlowPanel(kitStyle)
+        val spPoints = LabeledTextField("Special points: ")
+        contents += spPoints
         def generator(write: BufferedImage => Unit) = {
               val mainImage = mainGroup.image
               val mainName = mainGroup.textField.text match { 
@@ -285,8 +287,12 @@ object SwingApp {
                 case Left(value) => setupSvg(value, colorPicker.color).get
                 case Right(value) => value
               }
-               
-              val kit = renderer(mainName, JVMImage(mainImage), subName, JVMImage(sub), specialName, JVMImage(special), None, brand.map(it => JVMImage(it)))
+              val points = 
+                if (spPoints.text == "")
+                  None
+                else
+                  Some(spPoints.text)
+              val kit = renderer(mainName, JVMImage(mainImage), subName, JVMImage(sub), specialName, JVMImage(special), points, brand.map(it => JVMImage(it)))
               write(kit.unsafeRunSync().asInstanceOf[JVMImage].inner)
         }
         val generateButton = new Button("Generate!") {
@@ -359,6 +365,7 @@ class BrandGroup extends FlowPanel {
 class LabeledTextField(label : String) extends FlowPanel {
   contents += Label(label)
   val textField = new TextField(20)
+  def text = textField.text
   contents += textField
 }
 import net.bulbyvr.swing.MutableComboBox
