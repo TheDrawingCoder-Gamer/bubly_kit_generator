@@ -66,6 +66,7 @@ object Mains {
     new MainBuilder("") {
       Default ++= AllGames
       Named("Zekkofin") += Splatoon3
+      Named("Firefin") += Splatoon2
       Named("Kelp") += Splatoon1
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += Splatoon1
