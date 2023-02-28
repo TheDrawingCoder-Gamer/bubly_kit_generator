@@ -65,6 +65,7 @@ object Mains {
   val splatterscope = 
     new MainBuilder("") {
       Default ++= AllGames
+      Named("Zekkofin") += Splatoon3
       Named("Kelp") += Splatoon1
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += Splatoon1
@@ -81,7 +82,7 @@ object Mains {
     },
     new MainBuilder("96 Gal") {
       Default ++= AllGames
-      Named("Deco") ++= OldGames
+      Named("Deco") ++= AllGames
     },
     new MainBuilder("Aerospray") {
       Default ++= AllGames 
@@ -115,7 +116,7 @@ object Mains {
     },
     new MainBuilder("Clash Blaster") {
       Default ++= NewGames
-      Named("Neo") += Splatoon2
+      Named("Neo") ++= NewGames
     },
     new MainBuilder("Dapple Dualies") {
       Default ++= NewGames
@@ -181,11 +182,11 @@ object Mains {
     },
     new MainBuilder("Jet Squelcher") {
       Default ++= AllGames
-      Named("Custom") ++= OldGames
+      Named("Custom") ++= AllGames
     },
     new MainBuilder("L-3 Nozzlenose") {
       Default ++= AllGames
-      Named("D") ++= OldGames
+      Named("D") ++= AllGames
       Named("Kensa") += Splatoon2
     },
     new MainBuilder("Luna Blaster") {
@@ -203,7 +204,7 @@ object Mains {
     },
     new MainBuilder("N-Zap") {
       Default ++= AllGames
-      Named("89") ++= Seq(S3Custom, Splatoon2, Splatoon1)
+      Named("89") ++= Seq(Splatoon3, S3Custom, Splatoon2, Splatoon1)
       Named("Sheldon's Picks") ++= Seq(S3Custom, Splatoon2, Splatoon1)
     },
     new MainBuilder("Nautilus") {
@@ -224,7 +225,7 @@ object Mains {
     },
     new MainBuilder("Rapid Blaster") {
       Default ++= AllGames
-      Named("Deco") ++= OldGames
+      Named("Deco") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Wicked") += S3Custom
     },
@@ -254,7 +255,7 @@ object Mains {
     },
     new MainBuilder("Splash-o-matic") {
       Default ++= AllGames
-      Named("Neo") ++= OldGames
+      Named("Neo") ++= AllGames
     },
     new MainBuilder("Splat Brella") {
       Default ++= NewGames
@@ -279,7 +280,7 @@ object Mains {
       Named("Hero") ++= OldGames
       val krakon = Named("Krak-on")
       krakon += S3Custom
-      krakon ++= OldGames
+      krakon ++= AllGames
       Named("Sheldon's Picks") += Splatoon1
       Named("Kensa") += Splatoon2
     },
@@ -318,7 +319,7 @@ object Mains {
     },
     new MainBuilder("Sploosh-o-matic") {
       Default ++= AllGames
-      Named("Neo") ++= OldGames
+      Named("Neo") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },
     new MainBuilder("Squeezer") {
@@ -341,7 +342,7 @@ object Mains {
     },
     new MainBuilder("Tri-Slosher") {
       Default ++= AllGames
-      Named("Nouveau") ++= OldGames
+      Named("Nouveau") ++= AllGames
 
     },
     new MainBuilder("Tri-Stringer") {
@@ -392,9 +393,10 @@ object Specials {
       ("Ink Vac", Seq(Splatoon3, Splatoon1)),
       ("Inkjet", Seq(Splatoon3, Splatoon2, Splatoon1)),
       ("Killer Wail 5.1", Seq(Splatoon3, Splatoon1)),
+      "Kraken Royale" -> Seq(Splatoon3),
       ("Reefslider", Seq(Splatoon3, Splatoon1)),
       ("Splashdown", Seq(Splatoon3, Splatoon2)),
-      ("Super Chump", Seq(S3Custom)),
+      ("Super Chump", Seq(Splatoon3, S3Custom)),
       ("Tacticooler",  Seq(Splatoon3, Splatoon1)),
       ("Tenta Missiles", Seq(Splatoon3, Splatoon2, Splatoon1)),
       ("Triple Inkstrike", Seq(Splatoon3, Splatoon1)),
@@ -524,6 +526,7 @@ object Brands {
       "Tentatek Light",
       "Tentatek Splatoon 1",
       "Zekko",
+      "Zekkofin",
       "Zink Blue",
       "Zink White",
       "Zink Yellow"

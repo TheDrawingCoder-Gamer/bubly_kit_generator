@@ -67,7 +67,7 @@ lazy val web = project
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.4.0",
     scalaJSUseMainModuleInitializer := true,
     webTarget := new File((Compile / target).value, "webpage"),
-    
+    Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     fastCopyWeb := copyImpl((Compile / fastLinkJSOutput).value, webTarget.value, baseDirectory.value),
     fullCopyWeb := copyImpl((Compile / fullLinkJSOutput).value, webTarget.value, baseDirectory.value),
     tearDownWeb := tearDownImpl(webTarget.value),

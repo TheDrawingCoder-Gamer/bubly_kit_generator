@@ -3,8 +3,18 @@
 	flex-direction: column;
 	align-content: center;
 	align-items: center;
+	gap: 10px;
 }
+.horz {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-around;
 
+}
+.alignEnd {
+	align-self: end;
+}
 html, body {
 	background-color: #2c2c2c;
 	color: white;
