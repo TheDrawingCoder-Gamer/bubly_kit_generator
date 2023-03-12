@@ -1,6 +1,6 @@
 import java.nio.file.Files
 
-val scala3Version = "3.2.0"
+val scala3Version = "3.2.2"
 
 ThisBuild / scalaVersion := scala3Version
 ThisBuild / scalacOptions += "-old-syntax"
@@ -32,7 +32,17 @@ lazy val swing = project
     libraryDependencies += "org.typelevel" %% "cats-effect" % "3.4.8",
 
   )
-
+lazy val swingio = project
+  .in(file("swingio"))
+  .dependsOn(core.jvm)
+  .settings(
+    name := "splooge_io",
+    version := "0.1.0-SNAPSHOT",
+    scalacOptions += "-source:future",
+    libraryDependencies += "io.github.thedrawingcoder-gamer" %% "swing-io" % "0.1-066ba2a-SNAPSHOT",
+    libraryDependencies += "org.typelevel" %% "cats-effect" % "3.4.8",
+    Compile / resourceDirectory := file("resources")
+  )
 val webTarget = settingKey[File]("webTarget")
 val tearDownWeb = TaskKey[Unit]("tearDownWeb")
 val linkJSDir = TaskKey[File]("linkJSDir")
@@ -88,5 +98,5 @@ lazy val web = project
     }
   )
 lazy val root = project
-  .aggregate(core.jvm, swing)
+  .aggregate(core.jvm, swing, swingio)
 

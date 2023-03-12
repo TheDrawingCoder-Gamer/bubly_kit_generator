@@ -4,6 +4,9 @@ import cats.effect.*
 trait Image {
   def width: Int
   def height: Int
+  /**
+   * Consumes the image
+   */
   def getCanvas(): Canvas
 }
 object Image extends ImageFactory

@@ -268,6 +268,7 @@ object Mains {
     new MainBuilder("Sloshing Machine") {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
+      Named("Neo") += S3Custom
       Named("Neo") ++= OldGames
       Named("Kensa") += Splatoon2
     },
