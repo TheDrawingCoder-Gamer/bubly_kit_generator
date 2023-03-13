@@ -9,6 +9,8 @@ trait ImageFactory {
 
   }
   def loadFromResource(resource: String) = IO.blocking {
-    new JVMImage(ImageIO.read(this.getClass.getResourceAsStream("/" + resource)))
+    val stream = Option(this.getClass.getResourceAsStream("/" + resource)).getOrElse(this.getClass.getResourceAsStream("/nothing.png"))
+    
+    new JVMImage(ImageIO.read(stream))
   }
 }

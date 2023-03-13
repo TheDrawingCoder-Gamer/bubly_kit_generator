@@ -9,9 +9,12 @@ import net.bulbyvr.swing.io.wrapper.event.*
 import net.bulbyvr.swing.io.{IOSwingApp, AwtEventDispatchEC}
 import cats.effect.*
 import java.awt.image.BufferedImage
+import java.awt.Image as JImage
 import fs2.concurrent.*
 import javax.imageio.ImageIO
 import javax.swing.UIManager
+import fs2.Pipe
+import java.awt.Toolkit
 def imageSelector(image: SignallingRef[IO, Option[BufferedImage]]): Resource[IO, Component[IO]] = {
   flow(
     button(
@@ -34,7 +37,8 @@ def GameDropdown(game: SignallingRef[IO, GameStyle], games: Signal[IO, Seq[GameS
       items <-- games,
       onSelectionChange --> {
         _.evalMap(_ => self.item.get).foreach(game.set(_) *> image.set(None))
-      }
+      },
+      renderer := { (it: GameStyle) => it.longName }
     )}
   )
 }
@@ -45,10 +49,19 @@ def OtherWeaponsDropdown(daLabel: String, weapon: SignallingRef[IO, OtherWeapon]
   box(
     flow(
       label(text := daLabel + " Name: ", 
-        icon <-- (weapon.asInstanceOf[Signal[IO, OtherWeapon]], game, selectedFile).tupled.discrete.evalMap( (w, g, f) =>
+        icon <-- (weapon.asInstanceOf[Signal[IO, OtherWeapon]], selectedFile).tupled.discrete.evalMap((w, f) => game.get.map((w, _, f))).evalMap( (w, g, f) =>
           (f match {
             case Some(value) => JVMImage(value).pure[IO]
-            case None => Image.loadFromResource(otherPath(w, g)).map(_.asInstanceOf[JVMImage])
+            case None => 
+              val path = otherPath(w, g)
+              for {
+                exists <- pathExists(path)
+                img <- 
+                  (if (exists)
+                    Image.loadFromResource(path)
+                  else 
+                    Image.loadFromResource("nothing.png")).map(_.asInstanceOf[JVMImage])
+              } yield img
           }).flatMap(scaleImage).map(it => WImage[IO](it.inner))
         ).hold1Resource),
       textField.withSelf { self =>
@@ -64,7 +77,7 @@ def OtherWeaponsDropdown(daLabel: String, weapon: SignallingRef[IO, OtherWeapon]
       comboBox[OtherWeapon].withSelf { self => (
         items := weapons,
         onSelectionChange --> {
-          _.evalMap(_ => self.item.get).foreach(it => weapon.set(it) *> game.set(it.games.head) *> selectedFile.set(None))
+          _.evalMap(_ => self.item.get).foreach(it => game.set(it.games.head) *> weapon.set(it) *> selectedFile.set(None))
         },
         renderer := { (it: OtherWeapon) => 
           it.name
@@ -117,7 +130,7 @@ def MainWeaponDropdown(weapon: SignallingRef[IO, Weapon], style: SignallingRef[I
         onValueChange --> {
           _.evalMap(_ => self.text.get)
             .map(it => if (it == "") None else Some(it))
-            .foreach(name.set(_) *> selectedFile.set(None))
+            .foreach(name.set(_))
         }
       )}),
     flow(
@@ -228,7 +241,7 @@ def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subG
     mainImg <- mainImage.map(it => JVMImage(it).pure[IO]).getOrElse(weaponPath(mainWeapon, mainStyle, twodim) >>= Image.loadFromResource)
     subImg <- subImage.map(it => JVMImage(it).pure[IO]).getOrElse(Image.loadFromResource(otherPath(sub, subGame)))
     spImg <- spImage.map(it => JVMImage(it).pure[IO]).getOrElse(Image.loadFromResource(otherPath(special, spGame)))
-    brandImg <- brand.traverse(it => Image.loadFromResource(s"brands/${it}.png"))
+    brandImg <- brand.traverse(it => Image.loadFromResource(s"brands/${it.toLowerCase().replace(' ', '_')}.png"))
     res <- renderer(daMainName, mainImg, daSubName, subImg, daSpName, spImg, spPoints, brandImg)
   } yield res.asInstanceOf[JVMImage]
 }
@@ -251,11 +264,26 @@ def BrandDropdown(brand: SignallingRef[IO, Option[String]]): Resource[IO, Compon
 def brandImage(name: Option[String]): String = {
   name.map(_.toLowerCase()) match {
     case None => "nothing.png"
-    case Some(name) => 
+    case Some(name) =>
       val n = name.replace(' ', '_')
       s"brands/$n.png"
   }
 }
+
+import java.awt.datatransfer.*
+
+class ImageTransferable(private val image: JImage) extends Transferable {
+  def getTransferData(x: DataFlavor): Object = {
+    if (isDataFlavorSupported(x)) {
+      image 
+    } else {
+      throw new UnsupportedFlavorException(x)
+    }
+  }
+  def isDataFlavorSupported(x: DataFlavor): Boolean = x == DataFlavor.imageFlavor
+  def getTransferDataFlavors(): Array[DataFlavor] = Array(DataFlavor.imageFlavor)
+}
+
 
 object App extends IOSwingApp {
   def render = for {
@@ -274,6 +302,17 @@ object App extends IOSwingApp {
       })
     brand <- SignallingRef[IO].of[Option[String]](None).toResource
     brandDropdown = BrandDropdown(brand)
+    pipe: Pipe[IO, ButtonClicked[IO], JVMImage] = {
+      _.evalMap { _ =>
+        (mainWeapon.get, mainStyle.get, sub.get, subGame.get, special.get,
+          spGame.get, do2D.get, mainName.get, subName.get, spName.get, mainImage.get,
+          subImage.get, spImage.get, kitGame.get, spPoints.get, brand.get).tupled
+      }.evalMap { (main, mainStyle, sub, subGame, special, spGame, do2D, mainName,
+        subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand) => 
+        renderKit(main, mainStyle, sub, subGame, special, spGame, do2D, mainName,
+          subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand)
+      }
+    }
     win <- window(
         title := "Splatoon 3 Kit Generator",
         lookAndFeel := UIManager.getInstalledLookAndFeels().find(_.getName() == "GTK+").map(_.getClassName()).getOrElse(UIManager.getSystemLookAndFeelClassName()),
@@ -284,21 +323,23 @@ object App extends IOSwingApp {
           brandDropdown,
           spPointsTxt,
           kitDropdown,
-          button(
-            text := "Generate!",
-            onBtnClick --> {
-              _.evalMap { _ => 
-                (mainWeapon.get, mainStyle.get, sub.get, subGame.get, special.get,
-                  spGame.get, do2D.get, mainName.get, subName.get, spName.get, mainImage.get, subImage.get,
-                  spImage.get, kitGame.get, spPoints.get, brand.get).tupled
-              }.evalMap { (main, mainStyle, sub, subGame, special, spGame, do2D, mainName, subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand) =>
-                for {
-                  _ <- IO.println(main.name)
-                  img <- renderKit(main, mainStyle, sub, subGame, special, spGame, do2D, mainName, subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand)
-                } yield img
-              }.foreach(img => FileChooser[IO].save.flatMap(file => file.traverse(it => IO.blocking { ImageIO.write(img.inner, "png", it) }).void ) )
-            }
-            )
+          flow(
+            button(
+              text := "Generate!",
+              onBtnClick --> {
+                pipe
+                  .andThen(_.foreach(img => FileChooser[IO]
+                    .save
+                    .flatMap(file => file.traverse(it => IO.blocking { ImageIO.write(img.inner, "png", it) }).void ) ))
+              }
+              ),
+            button(
+              text := "Generate to clipboard",
+              onBtnClick --> pipe.andThen {
+                _.foreach(img => IO.blocking { Toolkit.getDefaultToolkit().getSystemClipboard().setContents(ImageTransferable(img.inner), null) }.evalOn(AwtEventDispatchEC)) 
+              }
+              )
+          )
         ),
 
       )
