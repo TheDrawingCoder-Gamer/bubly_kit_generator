@@ -1,5 +1,6 @@
 import java.awt.datatransfer.*
 import java.awt.*
+
 class ImageTransferable(private val image: Image) extends Transferable {
   def getTransferData(x: DataFlavor): Object = {
     if (isDataFlavorSupported(x)) {
