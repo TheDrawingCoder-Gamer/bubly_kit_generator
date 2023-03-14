@@ -17,12 +17,12 @@ import fs2.Pipe
 import java.awt.Toolkit
 def imageSelector(image: SignallingRef[IO, Option[BufferedImage]]): Resource[IO, Component[IO]] = {
   flow(
-    button(
+    button.withSelf { self =>(
       text := "Select Image...",
       onBtnClick --> {
-        _.evalMap(_ => FileChooser[IO].open).evalMap(maybeFile => maybeFile.traverse(file => IO.blocking { ImageIO.read(file) } )).foreach(image.set)
+        _.evalMap(_ => FileChooser[IO].open(self)).evalMap(maybeFile => maybeFile.traverse(file => IO.blocking { ImageIO.read(file) } )).foreach(image.set)
       }
-      ),
+    )},
     button(
       text := "Clear Image",
       onBtnClick --> {
@@ -112,7 +112,10 @@ def scaleImage(image: JVMImage): IO[JVMImage] = {
 def MainWeaponDropdown(weapon: SignallingRef[IO, Weapon], style: SignallingRef[IO, WeaponStyle], do2D: SignallingRef[IO, Boolean],
   selectedFile: SignallingRef[IO, Option[BufferedImage]],
   name: SignallingRef[IO, Option[String]],
-  weapons: Seq[Weapon]) = {
+  group: SignallingRef[IO, String],
+  weapons: Map[String, Seq[Weapon]],
+  groups: Seq[String]) = {
+  val daWeapons = group.map(weapons(_))
   val styles = weapon.map(_.styles)
   box(
     flow(
@@ -134,8 +137,15 @@ def MainWeaponDropdown(weapon: SignallingRef[IO, Weapon], style: SignallingRef[I
         }
       )}),
     flow(
+      comboBox[String].withSelf { self => 
+        ( items := groups,
+          onSelectionChange --> {
+            _.evalMap(_ => self.item.get)
+              .foreach(it => group.set(it) *> weapon.set(weapons(it).head) *> style.set(weapons(it).head.styles.head) *> selectedFile.set(None))
+          })
+      },
       comboBox[Weapon].withSelf { self => 
-        ( items := weapons,
+        ( items <-- daWeapons,
           onSelectionChange --> {
             _.evalMap(_ => self.item.get)
               .foreach(it => weapon.set(it) *> style.set(it.styles.head) *> selectedFile.set(None))
@@ -170,16 +180,20 @@ def MainWeaponDropdown(weapon: SignallingRef[IO, Weapon], style: SignallingRef[I
     )
 }
 
-def BuildMainWeaponDropdown(weapons: Seq[Weapon]): IO[(SignallingRef[IO, Weapon], SignallingRef[IO, WeaponStyle], SignallingRef[IO, Boolean], 
-  SignallingRef[IO, Option[BufferedImage]], SignallingRef[IO, Option[String]], Resource[IO, Component[IO]])] = {
+def BuildMainWeaponDropdown: IO[(SignallingRef[IO, Weapon], SignallingRef[IO, WeaponStyle], SignallingRef[IO, Boolean], 
+  SignallingRef[IO, Option[BufferedImage]], SignallingRef[IO, Option[String]], SignallingRef[IO, String], Resource[IO, Component[IO]])] = {
+  val weapons = Mains.groupedWeapons
+  val groups = Mains.groups 
+  val headWeapon = weapons(groups.head).head
   for {
-    weapon <- SignallingRef[IO].of(weapons.head)
-    style <- SignallingRef[IO].of(weapons.head.styles.head)
+    weapon <- SignallingRef[IO].of(headWeapon)
+    style <- SignallingRef[IO].of(headWeapon.styles.head)
     do2D <- SignallingRef[IO].of(false)
     selectedFile <- SignallingRef[IO].of[Option[BufferedImage]](None)
     name <- SignallingRef[IO].of[Option[String]](None)
-    dropdown <- IO(MainWeaponDropdown(weapon, style, do2D, selectedFile, name, weapons))
-  } yield (weapon, style, do2D, selectedFile, name, dropdown)
+    group <- SignallingRef[IO].of(groups.head)
+    dropdown <- IO(MainWeaponDropdown(weapon, style, do2D, selectedFile, name, group, weapons, groups))
+  } yield (weapon, style, do2D, selectedFile, name, group, dropdown)
 }
 def OnlyGameDropdown(game: SignallingRef[IO, Game]): Resource[IO, Component[IO]] = {
   flow(
@@ -287,7 +301,7 @@ class ImageTransferable(private val image: JImage) extends Transferable {
 
 object App extends IOSwingApp {
   def render = for {
-    (mainWeapon, mainStyle, do2D, mainImage, mainName, mainDropdown) <- BuildMainWeaponDropdown(Mains.weapons).toResource
+    (mainWeapon, mainStyle, do2D, mainImage, mainName, _, mainDropdown) <- BuildMainWeaponDropdown.toResource
     (sub, subGame, subImage, subName, subDropdown) <- BuildOtherWeaponsDropdown("Sub", Subs.weapons).toResource
     (special, spGame, spImage, spName, spDropdown) <- BuildOtherWeaponsDropdown("Special", Specials.weapons).toResource
     (kitGame, kitDropdown) <- BuildGameDropdown.toResource
@@ -324,15 +338,15 @@ object App extends IOSwingApp {
           spPointsTxt,
           kitDropdown,
           flow(
-            button(
+            button.withSelf{self => (
               text := "Generate!",
               onBtnClick --> {
                 pipe
                   .andThen(_.foreach(img => FileChooser[IO]
-                    .save
+                    .save(self)
                     .flatMap(file => file.traverse(it => IO.blocking { ImageIO.write(img.inner, "png", it) }).void ) ))
               }
-              ),
+              )},
             button(
               text := "Generate to clipboard",
               onBtnClick --> pipe.andThen {

@@ -113,7 +113,10 @@ def ImageGroup(image: SignallingRef[IO, Option[String]]): Resource[IO, HtmlEleme
 def MainWeaponDropdowns(weapon: SignallingRef[IO, Weapon], style: SignallingRef[IO, WeaponStyle], do2D: SignallingRef[IO, Boolean], 
   selectedFile: SignallingRef[IO, Option[String]],
   name: SignallingRef[IO, Option[String]],
-  weapons: List[Weapon]): Resource[IO, HtmlElement[IO]] = {
+  group: SignallingRef[IO, String],
+  weapons: Map[String, Seq[Weapon]],
+  groups: Seq[String]): Resource[IO, HtmlElement[IO]] = {
+  val daWeapons = group.map(weapons(_))
   val styles = weapon.map(_.styles)
   div(
     p(
@@ -141,10 +144,20 @@ def MainWeaponDropdowns(weapon: SignallingRef[IO, Weapon], style: SignallingRef[
         ),
       select.withSelf { self =>
         (
-          weapons.map(w => option(value := w.name, w.name)),
+          groups.toList.map(g => option(value := g, g)),
+          value <-- group,
+          onChange --> {
+            _.evalMap(_ => self.value.get)
+              .foreach(g => group.set(g) *> weapon.set(weapons(g).head) *> style.set(weapons(g).head.styles.head) *> selectedFile.set(None))
+          }
+          )
+      },
+      select.withSelf { self =>
+        (
+          children <-- daWeapons.map(_.map(w => option(value := w.name, w.name)).toList),
           value <-- weapon.map(_.name),
           onChange --> {
-            _.evalMap(_ => self.value.get).map(it => weapons.find(_.name == it)).unNone.foreach(it => weapon.set(it) *> style.set(it.styles.head) *> selectedFile.set(None))
+            _.evalMap(_ => (self.value.get, daWeapons.get).tupled).map((it, weapons) => weapons.find(_.name == it)).unNone.foreach(it => weapon.set(it) *> style.set(it.styles.head) *> selectedFile.set(None))
           }
         )
       },
@@ -173,15 +186,17 @@ def MainWeaponDropdowns(weapon: SignallingRef[IO, Weapon], style: SignallingRef[
       )
   )
 }
-def BuildMainWeaponDropdowns(weapons: Seq[Weapon]): IO[(SignallingRef[IO, Weapon], SignallingRef[IO, WeaponStyle], SignallingRef[IO, Boolean], 
+def BuildMainWeaponDropdowns: IO[(SignallingRef[IO, Weapon], SignallingRef[IO, WeaponStyle], SignallingRef[IO, Boolean], 
   SignallingRef[IO, Option[String]], SignallingRef[IO, Option[String]], Resource[IO, HtmlElement[IO]])] = {
+  val headWeapon = Mains.groupedWeapons(Mains.groups.head)
   for {
-    weapon <- SignallingRef[IO].of(weapons.head)
-    style <- SignallingRef[IO].of(weapons.head.styles.head)
+    weapon <- SignallingRef[IO].of(headWeapon.head)
+    style <- SignallingRef[IO].of(headWeapon.head.styles.head)
     do2D <- SignallingRef[IO].of(false)
     selectedFile <- SignallingRef[IO].of[Option[String]](None)
     name <- SignallingRef[IO].of[Option[String]](None)
-    dropdown <- IO(MainWeaponDropdowns(weapon, style, do2D, selectedFile, name, weapons.toList))
+    group <- SignallingRef[IO].of(Mains.groups.head)
+    dropdown <- IO(MainWeaponDropdowns(weapon, style, do2D, selectedFile, name, group, Mains.groupedWeapons, Mains.groups))
   } yield (weapon, style, do2D, selectedFile, name, dropdown)
 }
 def OnlyGameDropdown[T <: GameStyle](game: SignallingRef[IO, T], games: List[T]): Resource[IO, HtmlElement[IO]] = {
@@ -317,7 +332,7 @@ def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subG
 object App extends IOWebApp {
   def render: Resource[cats.effect.IO, HtmlElement[cats.effect.IO]] = 
     for {
-      mainDropdownsGroup <- BuildMainWeaponDropdowns(Mains.weapons).toResource
+      mainDropdownsGroup <- BuildMainWeaponDropdowns.toResource
       (mainWeapon, mainStyle, do2D, selectedMain, mainName, mainDropdowns) = mainDropdownsGroup
       subDropdownsGroup <- BuildOtherWeaponDropdowns("Sub name: ", Subs.weapons).toResource
       (sub, subGame, subImage, subName, subDropdowns) = subDropdownsGroup

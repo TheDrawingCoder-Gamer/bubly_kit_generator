@@ -12,7 +12,7 @@ case class WeaponStyle(game: GameStyle, name: StyleName) {
   }
 }
 
-case class Weapon(name: String, styles: Seq[WeaponStyle]) {
+case class Weapon(name: String, styles: Seq[WeaponStyle], group: String) {
   /**
    * @returns a tuple containing (3dPath, 2dPath)
    */
@@ -55,16 +55,16 @@ trait WeaponBuilder {
     items.toSeq
 }
 
-trait MainBuilder(val name: String) extends WeaponBuilder {
-  def build(): (String, Seq[(StyleName, GameStyle)]) = 
-    name -> getItems()
+trait MainBuilder(val name: String, val group: String) extends WeaponBuilder {
+  def build(): ((String, String), Seq[(StyleName, GameStyle)]) = 
+    (name, group) -> getItems()
 }
 
-def MapToWeapon(daMap : Map[String, AWeapon]) : Seq[Weapon] = 
-  Seq.from(for ((k, styles) <- daMap) yield {
-    Weapon(k, styles)
+def MapToWeapon(daMap : Map[(String, String), AWeapon]) : Seq[Weapon] = 
+  Seq.from(for (((k, g), styles) <- daMap) yield {
+    Weapon(k, styles, g)
   })
-def WeaponList(contents : (String, AWeapon)*) = 
+def WeaponList(contents : ((String, String), AWeapon)*) = 
   MapToWeapon(ListMap(contents:_*))
 
 case class OtherWeapon(root : String, name : String, games : Seq[GameStyle])
@@ -72,7 +72,7 @@ type NonMainWeaponList = Seq[OtherWeapon]
 def OtherWeaponList(root : String, contents : (String, Seq[GameStyle])*) : NonMainWeaponList = 
   contents.map((k, v) => OtherWeapon(root, k, v))
 
-given buildToWeaponList: Conversion[MainBuilder, (String, AWeapon)] = it => {
+given buildToWeaponList: Conversion[MainBuilder, ((String, String), AWeapon)] = it => {
   val (name, v) = it.build()
   name -> v.map((a, b) => WeaponStyle(b, a))
 }
@@ -80,95 +80,123 @@ object Mains {
   import Game.*
   import StyleName.*
   val Default = StyleName.Empty
+  val Charger = "Charger"
+  val Shooter = "Shooter"
+  val Blaster = "Blaster"
+  val Splatling = "Splatling"
+  val Slosher = "Slosher"
+  val Splatana = "Splatana"
+  val Bow = "Stringer"
+  val Roller = "Roller"
+  val Dualies = "Dualies"
+  val Brella = "Brella"
+  val Brush = "Brush"
+  val groups = Seq(
+      Shooter,
+      Roller,
+      Charger,
+      Slosher,
+      Splatling,
+      Dualies,
+      Brella,
+      Blaster,
+      Brush,
+      Bow,
+      Splatana
+    )
   val heroWeapon = Style(StyleName.Named("Hero"), Seq(Splatoon2))
-  val Simple3Weapon = Seq(WeaponStyle(Splatoon3, Default))
-  val splatterscope = 
-    new MainBuilder("") {
-      Default ++= AllGames
-      Named("Zekkofin") += Splatoon3
-      Named("Firefin") += Splatoon2
-      Named("Kelp") += Splatoon1
-      Named("Kensa") += Splatoon2
-      Named("Sheldon's Picks") += Splatoon1
+  def Simple3Weapon(name: String, group: String) = 
+    new MainBuilder(name, group) {
+      Default += Splatoon3
     }
-  val eliter = buildToWeaponList(new MainBuilder("") {
+  def splatchargerShared(build: WeaponBuilder) = {
+    import build.*
+    Default ++= AllGames
+    Named("Zekkofin") += Splatoon3
+    Named("Firefin") += Splatoon2
+    Named("Kelp") += Splatoon1
+    Named("Kensa") += Splatoon2
+    Named("Sheldon's Picks") += Splatoon1
+  }
+  def eliter(name: String) = new MainBuilder(name, Charger) {
       Default ++= AllGames
       Named("Custom") ++= OldGames
-  })._2
+  }
+  lazy val groupedWeapons: Map[String, Seq[Weapon]] = { weapons.groupBy(_.group) }
   val weapons = WeaponList(
-    new MainBuilder(".52 Gal") {
+    new MainBuilder(".52 Gal", Shooter) {
       Default ++= AllGames
       Named("Deco") ++= OldGames
       Named("Kensa") += Splatoon2
     },
-    new MainBuilder(".96 Gal") {
+    new MainBuilder(".96 Gal", Shooter) {
       Default ++= AllGames
       Named("Deco") ++= AllGames
     },
-    new MainBuilder("Aerospray") {
+    new MainBuilder("Aerospray", Shooter) {
       Default ++= AllGames 
       Named("Gold") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },
-    new MainBuilder("Ballpoint Splatling") {
+    new MainBuilder("Ballpoint Splatling", Splatling) {
       Default ++= NewGames
       Named("Nouveau") += Splatoon2
     },
-    new MainBuilder("Bamboozler 14") {
+    new MainBuilder("Bamboozler 14", Charger) {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
       Named("Cuttlegear") ++= OldGames
       Named("Sheldon's Picks") ++= OldGames
     },
-    "Big Swig" -> Simple3Weapon,
-    new MainBuilder("Blaster") {
+    Simple3Weapon("Big Swig", Roller),
+    new MainBuilder("Blaster", Blaster) {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
       Named("Custom") ++= OldGames
       add(heroWeapon)
     },
-    new MainBuilder("Bloblobber") {
+    new MainBuilder("Bloblobber", Slosher) {
       Default ++= NewGames
       Named("Deco") += Splatoon2
     },
-    new MainBuilder("Carbon Roller") {
+    new MainBuilder("Carbon Roller", Roller) {
       Default ++= AllGames
       Named("Deco") ++= AllGames
     },
-    new MainBuilder("Clash Blaster") {
+    new MainBuilder("Clash Blaster", Blaster) {
       Default ++= NewGames
       Named("Neo") ++= NewGames
     },
-    new MainBuilder("Dapple Dualies") {
+    new MainBuilder("Dapple Dualies", Dualies) {
       Default ++= NewGames
       Named("Nouveau") ++= NewGames
       Named("Sheldon's Picks") += Splatoon2
     },
-    new MainBuilder("Dualie Squelchers") {
+    new MainBuilder("Dualie Squelchers", Dualies) {
       Default ++= NewGames
       Named("Custom") += Splatoon2
     },
-    new MainBuilder("Dual Squelcher") {
+    new MainBuilder("Dual Squelcher", Shooter) {
       Default += Splatoon1
       Named("Custom") += Splatoon1
     },
-    new MainBuilder("Dynamo Roller") {
+    new MainBuilder("Dynamo Roller", Roller) {
       Default ++= AllGames
       Named("Gold") ++= OldGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += Splatoon1
     },
-    ("E-Liter", eliter),
-    ("E-Liter Scope", eliter),
-    new MainBuilder("Explosher") {
+    eliter("E-Liter"),
+    eliter("E-Liter Scope"),
+    new MainBuilder("Explosher", Slosher) {
       Default ++= NewGames
       Named("Custom") += Splatoon2
     },
-    new MainBuilder("Flingza Roller") {
+    new MainBuilder("Flingza Roller", Roller) {
       Default ++= NewGames
       Named("Foil") += Splatoon2
     },
-    new MainBuilder("Glooga Dualies") {
+    new MainBuilder("Glooga Dualies", Dualies) {
       Default ++= NewGames
       val deco = Named("Deco")
       deco += S3Custom
@@ -177,121 +205,117 @@ object Mains {
       kensa += S3Custom
       kensa += Splatoon2
     },
-    new MainBuilder("Goo Tuber") {
+    new MainBuilder("Goo Tuber", Charger) {
       Default ++= NewGames
       Named("Custom") += Splatoon2
     },
-    new MainBuilder("H-3 Nozzlenose") {
+    new MainBuilder("H-3 Nozzlenose", Shooter) {
       Default ++= AllGames
       Named("D") ++= OldGames
       Named("Sheldon's Picks") ++= OldGames
     },
-    new MainBuilder("Heavy Splatling") {
+    new MainBuilder("Heavy Splatling", Splatling) {
       Default ++= AllGames
       Named("Deco") ++= OldGames
       Named("Sheldon's Picks") ++= OldGames
       add(heroWeapon)
     },
-    new MainBuilder("Hydra Splatling") {
+    new MainBuilder("Hydra Splatling", Splatling) {
       Default ++= AllGames
       Named("Custom") ++= OldGames
     },
-    new MainBuilder("Inkbrush") {
+    new MainBuilder("Inkbrush", Brush) {
       Default ++= AllGames
       Named("Nouveau") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },
-    new MainBuilder("Jet Squelcher") {
+    new MainBuilder("Jet Squelcher", Shooter) {
       Default ++= AllGames
       Named("Custom") ++= AllGames
     },
-    new MainBuilder("L-3 Nozzlenose") {
+    new MainBuilder("L-3 Nozzlenose", Shooter) {
       Default ++= AllGames
       Named("D") ++= AllGames
       Named("Kensa") += Splatoon2
     },
-    new MainBuilder("Luna Blaster") {
+    new MainBuilder("Luna Blaster", Blaster) {
       Default ++= AllGames
       Named("Neo") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Emberz") += S3Custom
     },
-    new MainBuilder("Mini Splatling") {
+    new MainBuilder("Mini Splatling", Splatling) {
       Default ++= AllGames
       Named("Zink") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += S3Custom
       Named("Sheldon's Picks") += Splatoon1
     },
-    new MainBuilder("N-Zap") {
+    new MainBuilder("N-Zap", Shooter) {
       Default ++= AllGames
       Named("89") ++= Seq(Splatoon3, S3Custom, Splatoon2, Splatoon1)
       Named("Sheldon's Picks") ++= Seq(S3Custom, Splatoon2, Splatoon1)
     },
-    new MainBuilder("Nautilus") {
+    new MainBuilder("Nautilus", Splatling) {
       Default ++= NewGames
       Named("Gold") += Splatoon2
     },
-    new MainBuilder("Octobrush") {
+    new MainBuilder("Octobrush", Brush) {
       Default ++= AllGames
       Named("Nouveau") ++= OldGames
       Named("Kensa") += Splatoon2
       add(heroWeapon)
     },
-    new MainBuilder("Range Blaster") {
+    new MainBuilder("Range Blaster", Blaster) {
       Default ++= AllGames
       Named("Custom") ++= OldGames
       Named("Sheldon's Picks") += S3Custom
       Named("Sheldon's Picks") ++= OldGames
     },
-    new MainBuilder("Rapid Blaster") {
+    new MainBuilder("Rapid Blaster", Blaster) {
       Default ++= AllGames
       Named("Deco") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Wicked") += S3Custom
     },
     
-    new MainBuilder("Rapid Blaster Pro") {
+    new MainBuilder("Rapid Blaster Pro", Blaster) {
       Default ++= AllGames
       Named("Deco") ++= OldGames
       Named("Wicked") += S3Custom
     },
-    "REEF-LUX 450" -> new WeaponBuilder {
-      Default += Splatoon3
-    },
-    new MainBuilder("Slosher") {
+    Simple3Weapon("REEF-LUX 450", Bow),
+    new MainBuilder("Slosher", Slosher) {
       Default ++= AllGames
       Named("Deco") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
       add(heroWeapon)
     },
-    new MainBuilder("Sloshing Machine") {
+    new MainBuilder("Sloshing Machine", Slosher) {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
       Named("Neo") += S3Custom
       Named("Neo") ++= OldGames
       Named("Kensa") += Splatoon2
     },
-    "Snipewriter" -> new WeaponBuilder {
-      Default += Splatoon3
-    },
-    new MainBuilder("Splash-o-matic") {
+    Simple3Weapon("Snipewriter", Charger),
+    new MainBuilder("Splash-o-matic", Shooter) {
       Default ++= AllGames
       // 3.0.0 updated the sploosh & splash icons
       Named("Base") += Splatoon3
       Named("Neo") ++= AllGames
     },
-    new MainBuilder("Splat Brella") {
+    new MainBuilder("Splat Brella", Brella) {
       Default ++= NewGames
       Named("Grizzco") ++= NewGames
       Named("Sorella") += Splatoon2
       add(heroWeapon)
     },
-    new MainBuilder("Splat Charger") {
-      add(splatterscope.build()._2)
+    new MainBuilder("Splat Charger", Charger) {
+      splatchargerShared(this)
       add(heroWeapon) 
     },
-    new MainBuilder("Splat Dualies") {
+    new MainBuilder("Splat Dualies", Dualies) {
       Default ++= NewGames
       Named("Enperry") += Splatoon2
       val kensa = Named("Kensa")
@@ -299,7 +323,7 @@ object Mains {
       kensa += Splatoon2
       add(heroWeapon)
     },
-    new MainBuilder("Splat Roller") {
+    new MainBuilder("Splat Roller", Roller) {
       Default ++= AllGames
       Named("Hero") ++= OldGames
       val krakon = Named("Krak-on")
@@ -308,15 +332,15 @@ object Mains {
       Named("Sheldon's Picks") += Splatoon1
       Named("Kensa") += Splatoon2
     },
-    new MainBuilder("Splatana Stamper") {
+    new MainBuilder("Splatana Stamper", Splatana) {
       Default += Splatoon3
       Named("Grizzco") += Splatoon3
     },
-    "Splatana Wiper" -> new WeaponBuilder {
-      Default += Splatoon3
+    Simple3Weapon("Splatana Wiper", Splatana),
+    new MainBuilder("Splatterscope", Charger) {
+      splatchargerShared(this)
     },
-    ("Splatterscope", buildToWeaponList(splatterscope)._2),
-    new MainBuilder("Splattershot") {
+    new MainBuilder("Splattershot", Shooter) {
       Default ++= AllGames
       val kensa = Named("Kensa")
       kensa += S3Custom
@@ -328,54 +352,56 @@ object Mains {
       val octo = Named("Octo")
       octo += S3Custom
       octo ++= OldGames
+      Named("Zekkofin") += S3Custom
+      Named("Zekkofin 2") += S3Custom
     },
-    new MainBuilder("Splattershot Jr"){
+    new MainBuilder("Splattershot Jr", Shooter){
       Default ++= AllGames
       Named("Custom") ++= AllGames
       Named("Kensa") += Splatoon2
     },
-    ("Splattershot Nova", Simple3Weapon),
-    new MainBuilder("Splattershot Pro") {
+    Simple3Weapon("Splattershot Nova", Shooter),
+    new MainBuilder("Splattershot Pro", Shooter) {
       Default ++= AllGames
       Named("Forge") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += Splatoon1
     },
-    new MainBuilder("Sploosh-o-matic") {
+    new MainBuilder("Sploosh-o-matic", Shooter) {
       Default ++= AllGames
       // v3.0.0 changed the icon of sploosh & splash
       Named("Base") += Splatoon3
       Named("Neo") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },
-    new MainBuilder("Squeezer") {
+    new MainBuilder("Squeezer", Shooter) {
       Default ++= NewGames
       Named("Foil") += Splatoon2
     },
-    new MainBuilder("Squiffer") {
+    new MainBuilder("Squiffer", Charger) {
       Default ++= AllGames
       Named("New") ++= OldGames
       Named("Sheldon's Picks") ++= OldGames
     },
-    new MainBuilder("Tenta Brella") {
+    new MainBuilder("Tenta Brella", Brella) {
       Default ++= NewGames
       Named("Sorella") += Splatoon2
       Named("Sheldon's Picks") += Splatoon2
     },
-    new MainBuilder("Tetra Dualies") {
+    new MainBuilder("Tetra Dualies", Dualies) {
       Default ++= NewGames
       Named("Tentatek") += Splatoon2
     },
-    new MainBuilder("Tri-Slosher") {
+    new MainBuilder("Tri-Slosher", Slosher) {
       Default ++= AllGames
       Named("Nouveau") ++= AllGames
 
     },
-    new MainBuilder("Tri-Stringer") {
+    new MainBuilder("Tri-Stringer", Bow) {
       Default += Splatoon3
       Named("Grizzco") += Splatoon3
     },
-    new MainBuilder("Undercover Brella") {
+    new MainBuilder("Undercover Brella", Brella) {
       Default ++= NewGames
       Named("Sorella") += Splatoon2
       Named("Kensa") += Splatoon2
