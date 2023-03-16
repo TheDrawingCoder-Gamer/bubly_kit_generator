@@ -204,6 +204,8 @@ object Mains {
       val kensa = Named("Kensa")
       kensa += S3Custom
       kensa += Splatoon2
+      Named("Zekkofin") += S3Custom
+      Named("Cherry") += S3Custom
     },
     new MainBuilder("Goo Tuber", Charger) {
       Default ++= NewGames
@@ -223,6 +225,8 @@ object Mains {
     new MainBuilder("Hydra Splatling", Splatling) {
       Default ++= AllGames
       Named("Custom") ++= OldGames
+      Named("Copper") += S3Custom
+      Named("Gold") += S3Custom
     },
     new MainBuilder("Inkbrush", Brush) {
       Default ++= AllGames
@@ -250,6 +254,7 @@ object Mains {
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += S3Custom
       Named("Sheldon's Picks") += Splatoon1
+      Named("Zekkofin") += S3Custom
     },
     new MainBuilder("N-Zap", Shooter) {
       Default ++= AllGames
@@ -271,6 +276,7 @@ object Mains {
       Named("Custom") ++= OldGames
       Named("Sheldon's Picks") += S3Custom
       Named("Sheldon's Picks") ++= OldGames
+      Named("Zekkofin") += S3Custom
     },
     new MainBuilder("Rapid Blaster", Blaster) {
       Default ++= AllGames
@@ -284,11 +290,16 @@ object Mains {
       Named("Deco") ++= OldGames
       Named("Wicked") += S3Custom
     },
-    Simple3Weapon("REEF-LUX 450", Bow),
+    new MainBuilder("REEF-LUX 450", Bow) {
+      Default += Splatoon3
+      Named("Gold") += S3Custom
+    },
     new MainBuilder("Slosher", Slosher) {
       Default ++= AllGames
       Named("Deco") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
+      Named("Zekkofin") += S3Custom
+      Named("Melon") += S3Custom
       add(heroWeapon)
     },
     new MainBuilder("Sloshing Machine", Slosher) {
@@ -297,6 +308,7 @@ object Mains {
       Named("Neo") += S3Custom
       Named("Neo") ++= OldGames
       Named("Kensa") += Splatoon2
+      Named("Zekkofin") += S3Custom
     },
     Simple3Weapon("Snipewriter", Charger),
     new MainBuilder("Splash-o-matic", Shooter) {
@@ -317,10 +329,12 @@ object Mains {
     },
     new MainBuilder("Splat Dualies", Dualies) {
       Default ++= NewGames
+      Named("Enperry") += S3Custom
       Named("Enperry") += Splatoon2
       val kensa = Named("Kensa")
       kensa += S3Custom
       kensa += Splatoon2
+      Named("Zekkofin") += S3Custom
       add(heroWeapon)
     },
     new MainBuilder("Splat Roller", Roller) {
@@ -395,6 +409,7 @@ object Mains {
     new MainBuilder("Tri-Slosher", Slosher) {
       Default ++= AllGames
       Named("Nouveau") ++= AllGames
+      Named("Zekkofin") += S3Custom
 
     },
     new MainBuilder("Tri-Stringer", Bow) {

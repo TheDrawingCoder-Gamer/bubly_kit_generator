@@ -39,7 +39,7 @@ lazy val swingio = project
     name := "splooge_io",
     version := "0.1.0-SNAPSHOT",
     scalacOptions += "-source:future",
-    libraryDependencies += "io.github.thedrawingcoder-gamer" %% "swing-io" % "0.1-7b54a4e-SNAPSHOT",
+    libraryDependencies += "io.github.thedrawingcoder-gamer" %% "swing-io" % "0.1-c82eab4-SNAPSHOT",
     libraryDependencies += "org.typelevel" %% "cats-effect" % "3.4.8",
     Compile / resourceDirectory := file("resources")
   )
