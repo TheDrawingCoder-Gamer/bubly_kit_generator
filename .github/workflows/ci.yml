@@ -11,9 +11,10 @@ jobs:
   build:
     name: Generate site
     strategy:
-      os: [ubuntu-latest]
-      scala: [3.2.2]
-      java: [temurin@8]
+      matrix:
+        os: [ubuntu-latest]
+        scala: [3.2.2]
+        java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps: 
       - name: Checkout current branch (full)
