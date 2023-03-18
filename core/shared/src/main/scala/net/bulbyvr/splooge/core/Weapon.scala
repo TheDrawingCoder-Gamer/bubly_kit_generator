@@ -321,6 +321,7 @@ object Mains {
       Default ++= NewGames
       Named("Grizzco") ++= NewGames
       Named("Sorella") += Splatoon2
+      Named("Cherry") += S3Custom
       add(heroWeapon)
     },
     new MainBuilder("Splat Charger", Charger) {
@@ -374,7 +375,10 @@ object Mains {
       Named("Custom") ++= AllGames
       Named("Kensa") += Splatoon2
     },
-    Simple3Weapon("Splattershot Nova", Shooter),
+    new MainBuilder("Splattershot Nova", Shooter) {
+      Default += Splatoon3
+      Named("Tentatek") += S3Custom
+    },
     new MainBuilder("Splattershot Pro", Shooter) {
       Default ++= AllGames
       Named("Forge") ++= AllGames
