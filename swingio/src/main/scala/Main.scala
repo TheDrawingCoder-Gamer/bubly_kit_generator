@@ -240,7 +240,7 @@ def weaponPath(weapon: Weapon, style : WeaponStyle, twodim : Boolean) : IO[Strin
 def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subGame: GameStyle, 
   special: OtherWeapon, spGame: GameStyle, twodim: Boolean, mainName: Option[String], subName: Option[String],
   spName: Option[String], mainImage: Option[BufferedImage], subImage: Option[BufferedImage], spImage: Option[BufferedImage],
-  game: Game, spPoints: Option[String], brand: Option[String]): IO[JVMImage] = {
+  game: Game, spPoints: Option[String], brand: Option[String], artist: Option[String]): IO[JVMImage] = {
   val renderer = game match {
     case Game.Splatoon3 => Splooge3KitGen.renderKit
     case Game.Splatoon2 => Splooge2KitGen.renderKit
@@ -256,7 +256,7 @@ def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subG
     subImg <- subImage.map(it => JVMImage(it).pure[IO]).getOrElse(Image.loadFromResource(otherPath(sub, subGame)))
     spImg <- spImage.map(it => JVMImage(it).pure[IO]).getOrElse(Image.loadFromResource(otherPath(special, spGame)))
     brandImg <- brand.traverse(it => Image.loadFromResource(s"brands/${it.toLowerCase().replace(' ', '_')}.png"))
-    res <- renderer(daMainName, mainImg, daSubName, subImg, daSpName, spImg, spPoints, brandImg)
+    res <- renderer(daMainName, mainImg, daSubName, subImg, daSpName, spImg, spPoints, brandImg, artist)
   } yield res.asInstanceOf[JVMImage]
 }
 import javax.swing.JFileChooser
@@ -316,15 +316,24 @@ object App extends IOSwingApp {
       })
     brand <- SignallingRef[IO].of[Option[String]](None).toResource
     brandDropdown = BrandDropdown(brand)
+    artist <- SignallingRef[IO].of[Option[String]](None).toResource
+    artistTxt = flow("Kit made by: ", textField.withSelf { self =>
+      (
+        columns := 20,
+        onValueChange --> {
+          _.evalMap(_ => self.text.get).map(it => if (it == "") None else Some(it)).foreach(artist.set)
+        }
+        )
+    })
     pipe: Pipe[IO, ButtonClicked[IO], JVMImage] = {
       _.evalMap { _ =>
         (mainWeapon.get, mainStyle.get, sub.get, subGame.get, special.get,
           spGame.get, do2D.get, mainName.get, subName.get, spName.get, mainImage.get,
-          subImage.get, spImage.get, kitGame.get, spPoints.get, brand.get).tupled
+          subImage.get, spImage.get, kitGame.get, spPoints.get, brand.get, artist.get).tupled
       }.evalMap { (main, mainStyle, sub, subGame, special, spGame, do2D, mainName,
-        subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand) => 
+        subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand, artist) => 
         renderKit(main, mainStyle, sub, subGame, special, spGame, do2D, mainName,
-          subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand)
+          subName, spName, mainImage, subImage, spImage, kitGame, spPoints, brand, artist)
       }
     }
     win <- window(
@@ -336,6 +345,7 @@ object App extends IOSwingApp {
           spDropdown,
           brandDropdown,
           spPointsTxt,
+          artistTxt,
           kitDropdown,
           flow(
             button.withSelf{self => (

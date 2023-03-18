@@ -4,6 +4,10 @@ import net.bulbyvr.splooge.core.util.*
 import cats.effect.IO
 import cats.implicits.*
 trait KitFactory {
+  extension (pos: (Int, Int)) {
+    inline def x: Int = pos._1
+    inline def y: Int = pos._2
+  }
   protected def kit : IO[Image]
   protected def canvasSize : (Int, Int)
   protected def subSize : Int 
@@ -24,6 +28,8 @@ trait KitFactory {
   protected def spPointsTextPos : (Int, Int)
   protected def renderSubShadow : Boolean = false
   protected def renderSpecialShadow : Boolean = false 
+  protected def artistPos: (Int, Int)
+  protected def artistFont: FontInfo
   private def makeShadow(loadImg: Image): IO[Image] = {
     val img = Image(loadImg.width, loadImg.height)
     val canvas = img.getCanvas()
@@ -38,7 +44,7 @@ trait KitFactory {
     } yield i
   }
   def renderKit(mainName: String, mainImage: Image, subName: String, subImage: Image,
-    specialName: String, specialImage: Image, specialPoints: Option[String], brand: Option[Image]): IO[Image] = {
+    specialName: String, specialImage: Image, specialPoints: Option[String], brand: Option[Image], kitMaker: Option[String] = None): IO[Image] = {
     val (canvasW, canvasH) = canvasSize
     val img = Image(canvasW, canvasH)
     val canvas = img.getCanvas()
@@ -136,6 +142,12 @@ trait KitFactory {
           } yield ()
         case None => IO(())
       }
+      _ <- kitMaker.traverse_ { artist =>
+        for {
+          _ <- canvas.setFont(artistFont)
+          _ <- canvas.drawString("Kit made by: " + artist, artistPos.x, artistPos.y)
+        } yield ()
+      }
       complete <- canvas.complete()
     } yield complete
 
@@ -162,10 +174,11 @@ object Splooge3KitGen extends KitFactory {
   override val subPos = (subSpX, subY)
   override val specialPos = (subSpX, specialY)
   override val kitPos = (0, 0)
+  private val fontTransform = AffineTransform.rotation(Math.toRadians(1))
   private lazy val splooge1Font = FontInfo("Splatoon1", "font/splatoon1.otf", 0)
   private lazy val splooge2Font = FontInfo("Splatoon2", "font/splatoon2.otf", 0)
   private lazy val subSpFont = splooge2Font.copy(size = 25)
-  override lazy val weaponFont = splooge1Font.copy(size = 32)
+  override lazy val weaponFont = splooge1Font.copy(size = 32, transform = fontTransform)
   override lazy val subFont = subSpFont 
   override lazy val specialFont = subSpFont 
   override lazy val spPointsFont = splooge2Font.copy(size = 32)
@@ -174,6 +187,8 @@ object Splooge3KitGen extends KitFactory {
   override val subTextPos = (subSpFontX, subY)
   override val specialTextPos = (subSpFontX, specialY)
   override val spPointsTextPos = (475, 320)
+  override val artistPos = (52, 420)
+  override val artistFont = splooge2Font.copy(size = 25)
 }
 object Splooge2KitGen extends KitFactory {
   // TODO: is holding an image in memory really worth it?
@@ -203,6 +218,8 @@ object Splooge2KitGen extends KitFactory {
   override val subTextPos = (subSpFontX, subY + textOffset)
   override val specialTextPos = (subSpFontX, specialY + textOffset)
   override val spPointsTextPos = (485, 485)
+  override val artistPos = (52, 550)
+  override val artistFont = splooge2Font.copy(size = 25)
 }
 object Splooge1KitGen extends KitFactory {
   // TODO: is holding an image in memory really worth it?
@@ -224,7 +241,7 @@ object Splooge1KitGen extends KitFactory {
   private lazy val splooge1Font = FontInfo("Splatoon1", "font/splatoon1.otf", 0)
   private lazy val michromaFont = FontInfo("Michroma", "font/michroma-regular.ttf", 0)
   private lazy val subSpFont = michromaFont.copy(size = 20)
-  private val fontTransform = AffineTransform.rotation(Math.toRadians(5))
+  private val fontTransform = AffineTransform.rotation(Math.toRadians(4))
   // me omw to derive ur mom
   override lazy val weaponFont = splooge1Font.copy(size = 32, transform = fontTransform)
   override lazy val subFont = subSpFont 
@@ -239,4 +256,6 @@ object Splooge1KitGen extends KitFactory {
   override val spPointsTextPos = (410, 367)
   override val renderSubShadow = true 
   override val renderSpecialShadow = true
+  override val artistPos = (52, 450)
+  override val artistFont = splooge1Font.copy(size = 25)
 }

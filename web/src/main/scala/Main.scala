@@ -305,7 +305,7 @@ def loadImage(str: dom.File): IO[String] = {
 def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subGame: GameStyle, 
   special: OtherWeapon, spGame: GameStyle, twodim: Boolean, kit: Game, brand: String,
   selectedMain: Option[String], selectedSub: Option[String], selectedSpecial: Option[String], spPoints: Option[String],
-  mainName: Option[String], subName: Option[String], spName: Option[String]): IO[JSImageCanvas] = {
+  mainName: Option[String], subName: Option[String], spName: Option[String], artist: Option[String]): IO[JSImageCanvas] = {
   val renderer = 
     kit match {
       case Splatoon1 => Splooge1KitGen.renderKit
@@ -326,7 +326,7 @@ def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subG
     subImg <- selectedSub.map(Image.fromDataURL).getOrElse(Image.loadFromResource(otherPath(sub, subGame)))
     spImg <- selectedSpecial.map(Image.fromDataURL).getOrElse(Image.loadFromResource(otherPath(special, spGame)))
     brandImg <- brandName.traverse(it => Image.loadFromResource(s"brands/${it}.png"))
-    res <- renderer(daMainName, mainImg, daSubName, subImg, daSpName, spImg, spPoints, brandImg)
+    res <- renderer(daMainName, mainImg, daSubName, subImg, daSpName, spImg, spPoints, brandImg, artist)
   } yield res.asInstanceOf[JSImageCanvas]
 }
 object App extends IOWebApp {
@@ -343,6 +343,7 @@ object App extends IOWebApp {
       brandDropdownGroup <- BuildBrandDropdown(Brands.brands.prepended("None").toList).toResource
       (brand, brandDropdown) = brandDropdownGroup
       spPoints <- SignallingRef[IO].of[Option[String]](None).toResource
+      artist <- SignallingRef[IO].of[Option[String]](None).toResource
       renderedKit <- SignallingRef[IO].of[String]("resources/nothing.png").toResource
       res <- {
         div(
@@ -363,6 +364,15 @@ object App extends IOWebApp {
               }
               )}
             ),
+            div(
+              p("Kit made by: "),
+              input.withSelf { self => (
+                tpe := "text",
+                onChange --> {
+                  _.evalMap(_ => self.value.get).map(it => if (it == "") None else Some(it)).foreach(artist.set)
+                }
+              )}
+              ),
             cls := "vertical",
             button(
               `type` := "button",
@@ -372,15 +382,15 @@ object App extends IOWebApp {
                   (mainWeapon.get, mainStyle.get, sub.get, subGame.get, special.get, 
                     spGame.get, do2D.get, kit.get, brand.get, selectedMain.get,
                     subImage.get, spImage.get, spPoints.get,
-                    mainName.get, subName.get, spName.get).tupled
+                    mainName.get, subName.get, spName.get, artist.get).tupled
                 }.evalMap { (main, mainStyle, sub, subGame, special, spGame, do2D, kit, 
                   brand, selectedMain, subImage, spImage, spPoints,
-                  mainName, subName, spName) =>
+                  mainName, subName, spName, artist) =>
                   for {
                     _ <- IO.println(main.name)
                     img <- renderKit(main, mainStyle, sub, subGame, special, spGame, do2D, kit, 
                       brand, selectedMain, subImage, spImage, spPoints,
-                      mainName, subName, spName) 
+                      mainName, subName, spName, artist) 
                     data <- IO {
                       img.inner.toDataURL("image/png")
                     }

@@ -292,7 +292,7 @@ object SwingApp {
                   None
                 else
                   Some(spPoints.text)
-              val kit = renderer(mainName, JVMImage(mainImage), subName, JVMImage(sub), specialName, JVMImage(special), points, brand.map(it => JVMImage(it)))
+              val kit = renderer(mainName, JVMImage(mainImage), subName, JVMImage(sub), specialName, JVMImage(special), points, brand.map(it => JVMImage(it)), None)
               write(kit.unsafeRunSync().asInstanceOf[JVMImage].inner)
         }
         val generateButton = new Button("Generate!") {

@@ -253,6 +253,7 @@ object Mains {
       Named("Neo") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Emberz") += S3Custom
+      Named("Pastel") += S3Custom
     },
     new MainBuilder("Mini Splatling", Splatling) {
       Default ++= AllGames
