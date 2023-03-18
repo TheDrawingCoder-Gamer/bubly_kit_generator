@@ -144,8 +144,8 @@ def rasterize(source: File, file: File, w: Float, h: Float): Seq[File] = {
     IO.createDirectory(file)
     Using(Jimfs.newFileSystem(Configuration.unix())) { fs =>
   
-      val path = fs.getPath("css.css")
-      Files.writeString(path, css)
+      // val path = fs.getPath("css.css")
+      // Files.writeString(path, css)
       Path.selectSubpaths(source, new ExtensionFilter("svg")).unzip._1.toSeq.map { svg =>
         val daSvg = loadDocument(svg.asURL)
         var daImage: Option[BufferedImage] = None
