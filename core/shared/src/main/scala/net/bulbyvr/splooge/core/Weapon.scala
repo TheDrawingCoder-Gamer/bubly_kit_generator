@@ -148,7 +148,10 @@ object Mains {
       Named("Cuttlegear") ++= OldGames
       Named("Sheldon's Picks") ++= OldGames
     },
-    Simple3Weapon("Big Swig", Roller),
+    new MainBuilder("Big Swig", Roller) {
+      Default += Splatoon3
+      Named("Pear") += S3Custom
+    },
     new MainBuilder("Blaster", Blaster) {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
@@ -182,9 +185,11 @@ object Mains {
     },
     new MainBuilder("Dynamo Roller", Roller) {
       Default ++= AllGames
+      Named("Gold") += S3Custom
       Named("Gold") ++= OldGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += Splatoon1
+      
     },
     eliter("E-Liter"),
     eliter("E-Liter Scope"),
@@ -195,6 +200,7 @@ object Mains {
     new MainBuilder("Flingza Roller", Roller) {
       Default ++= NewGames
       Named("Foil") += Splatoon2
+      Named("Deco") += S3Custom
     },
     new MainBuilder("Glooga Dualies", Dualies) {
       Default ++= NewGames
@@ -255,6 +261,7 @@ object Mains {
       Named("Sheldon's Picks") += S3Custom
       Named("Sheldon's Picks") += Splatoon1
       Named("Zekkofin") += S3Custom
+      Named("Leaf") += S3Custom
     },
     new MainBuilder("N-Zap", Shooter) {
       Default ++= AllGames
@@ -326,6 +333,7 @@ object Mains {
     },
     new MainBuilder("Splat Charger", Charger) {
       splatchargerShared(this)
+      Named("Pastel") += S3Custom
       add(heroWeapon) 
     },
     new MainBuilder("Splat Dualies", Dualies) {
@@ -346,6 +354,7 @@ object Mains {
       krakon ++= AllGames
       Named("Sheldon's Picks") += Splatoon1
       Named("Kensa") += Splatoon2
+      Named("Enperry") += S3Custom
     },
     new MainBuilder("Splatana Stamper", Splatana) {
       Default += Splatoon3
@@ -378,6 +387,7 @@ object Mains {
     new MainBuilder("Splattershot Nova", Shooter) {
       Default += Splatoon3
       Named("Tentatek") += S3Custom
+      Named("Pastel") += S3Custom
     },
     new MainBuilder("Splattershot Pro", Shooter) {
       Default ++= AllGames
@@ -414,6 +424,7 @@ object Mains {
       Default ++= AllGames
       Named("Nouveau") ++= AllGames
       Named("Zekkofin") += S3Custom
+      Named("Pastel") += S3Custom
 
     },
     new MainBuilder("Tri-Stringer", Bow) {
