@@ -4,6 +4,30 @@ import java.nio.file.Files
 
 val scala3Version = "3.2.2"
 
+
+import org.http4s.ember.server._
+import cats.syntax.all._
+import cats.effect.{IO => CIO}
+import com.comcast.ip4s._
+import org.http4s.server
+import server.staticcontent._
+def routes(path: String) = fileService[CIO](FileService.Config(path))
+def servePage(dir: File): CIO[Nothing] = {
+  val port = Port.fromInt(8000).get
+  val bind = IpAddress.fromString("127.0.0.1").get
+  EmberServerBuilder
+    .default[CIO]
+    .withHost(bind)
+    .withPort(port)
+    .withHttpApp(routes(dir.toPath.toString).orNotFound)
+    .build
+    .evalTap(s =>
+      CIO.println(
+        s"Serving HTTP on ${s.addressIp4s.host} port ${s.addressIp4s.port} (http://${s.addressIp4s}/)"
+      )
+    )
+    .useForever
+}
 ThisBuild / scalaVersion := scala3Version
 ThisBuild / scalacOptions += "-old-syntax"
 ThisBuild / scalacOptions += "-no-indent"
@@ -57,6 +81,7 @@ val tearDownWeb = TaskKey[Unit]("tearDownWeb")
 val linkJSDir = TaskKey[File]("linkJSDir")
 val fastCopyWeb = TaskKey[Unit]("fastCopyWeb")
 val fullCopyWeb = TaskKey[Unit]("fullCopyWeb")
+val serve = TaskKey[Unit]("serve")
 
 val fastBuild = TaskKey[Unit]("fastBuild")
 val fullBuild = TaskKey[Unit]("fullBuild")
@@ -76,6 +101,7 @@ def copyImpl(linkDir: File, targetDir: File, baseDir: File) = {
   }
 ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
+import cats.effect.unsafe.implicits.global
 lazy val web = project
   .enablePlugins(ScalaJSPlugin)
   .enablePlugins(ScalablyTypedConverterPlugin)
@@ -106,6 +132,10 @@ lazy val web = project
         fullCopyWeb,
 
       ).value
+    },
+    serve := {
+      fullBuild.value
+      servePage(webTarget.value).unsafeRunSync()
     }
   )
 lazy val root = project
@@ -185,3 +215,4 @@ def rasterize(source: File, file: File, w: Float, h: Float): Seq[File] = {
     Seq()
   }
 }
+

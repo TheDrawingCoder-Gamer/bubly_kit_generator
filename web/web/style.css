@@ -27,3 +27,24 @@ html, body {
 	src: url("resources/font/splatoon1.otf");
 
 }
+
+select, input[type="text"] {
+	background-image: repeating-linear-gradient(120deg, #ccc, #ccc 10px, #dbdbdb 10px, #dbdbdb 20px);
+	border-radius: 5px;
+}
+
+input[type="file"]::file-selector-button, button {
+	background-image: repeating-linear-gradient(120deg, #fc14be, #fc14be 10px, #ba078a 10px, #ba078a 20px);
+	border-color: #fc14be;
+	border-radius: 15px 20px;
+	color: white;
+	font-weight: bold;
+	font-size: 12px;
+	font-family: "Splatoon 2";
+}
+
+p, input[type="file"] {
+	font-family: "Splatoon 2";
+	font-size: 12px;
+}
+
