@@ -554,7 +554,7 @@ object Specials {
       ("Suction Bomb Launcher", Seq(
         Splatoon2
       )),
-      ("Inkzooka", Seq(S3Custom, Splatoon1)),
+      ("Inkzooka", Seq(S3Custom, Splatoon2, Splatoon1)),
       ("Bubble Blower", Seq(S3Custom, Splatoon2)),
       ("Sting Ray", Seq(S3Custom, Splatoon2))
 

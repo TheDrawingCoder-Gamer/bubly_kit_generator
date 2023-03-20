@@ -2,13 +2,13 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="256"
-   height="256"
-   viewBox="0 0 67.733332 67.733333"
+   width="128"
+   height="128"
+   viewBox="0 0 33.866666 33.866667"
    version="1.1"
    id="svg2768"
-   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14, custom)"
-   sodipodi:docname="inkstrike.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="s3_inkstrike.svg"
    inkscape:export-filename="inkstrike.png"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
@@ -28,13 +28,13 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="2.1408829"
-     inkscape:cx="23.821948"
-     inkscape:cy="147.36911"
-     inkscape:window-width="1916"
-     inkscape:window-height="1036"
-     inkscape:window-x="0"
-     inkscape:window-y="20"
+     inkscape:zoom="17.127063"
+     inkscape:cx="68.896809"
+     inkscape:cy="109.7678"
+     inkscape:window-width="1906"
+     inkscape:window-height="1026"
+     inkscape:window-x="5"
+     inkscape:window-y="25"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1" />
   <defs
@@ -124,7 +124,7 @@
      id="layer1">
     <g
        id="g3296"
-       transform="rotate(20.286706,40.470252,16.420441)">
+       transform="matrix(0.6309347,0.23322343,-0.23322343,0.6309347,2.6818783,-11.496585)">
       <rect
          style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.190664;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
          id="rect16745"
@@ -182,7 +182,7 @@
     </g>
     <g
        id="g3283"
-       transform="rotate(-17.887491,11.820412,36.836128)">
+       transform="matrix(0.64014481,-0.20660681,0.20660681,0.64014481,-10.062645,0.89679414)">
       <g
          id="g4520"
          transform="rotate(23.56478,28.312251,59.601068)">

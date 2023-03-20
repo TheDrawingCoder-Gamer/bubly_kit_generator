@@ -92,3 +92,9 @@ p, input[type="file"] {
 		align-self: unset;
 	}
 }
+
+html, body {
+	margin: 0px;
+	height: 100%;
+	background-image: repeating-linear-gradient(120deg, #222, #222 20px, #333 20px, #333 40px);
+}

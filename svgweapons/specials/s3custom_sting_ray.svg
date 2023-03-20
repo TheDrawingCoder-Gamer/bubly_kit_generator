@@ -7,7 +7,7 @@
    viewBox="0 0 67.733332 67.733333"
    version="1.1"
    id="svg5"
-   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14, custom)"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
    sodipodi:docname="sting_ray.svg"
    inkscape:export-filename="sting_ray.png"
    inkscape:export-xdpi="96"
@@ -28,13 +28,13 @@
      inkscape:deskcolor="#505050"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="1.6241025"
-     inkscape:cx="-52.028736"
-     inkscape:cy="74.810549"
-     inkscape:window-width="1916"
-     inkscape:window-height="1036"
-     inkscape:window-x="0"
-     inkscape:window-y="20"
+     inkscape:zoom="2.2968278"
+     inkscape:cx="114.94114"
+     inkscape:cy="50.939823"
+     inkscape:window-width="1906"
+     inkscape:window-height="1026"
+     inkscape:window-x="5"
+     inkscape:window-y="25"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1" />
   <defs
@@ -107,5 +107,10 @@
        style="fill:#35bfc1;fill-opacity:1;stroke-width:0.264583;paint-order:stroke fill markers"
        d="M 54.238085 11.943612 C 52.952331 12.640347 52.082937 14.000674 52.082937 15.57139 L 52.082977 25.472581 C 52.082977 27.757259 53.922281 29.596546 56.206959 29.596546 L 63.776453 29.596725 C 66.061131 29.596725 67.900418 27.757421 67.900418 25.472743 L 67.900379 15.571552 C 67.900379 13.286874 66.061075 11.447587 63.776397 11.447587 L 56.206903 11.447408 C 55.492941 11.447408 54.822518 11.626915 54.238085 11.943612 z M 56.31585 15.041574 C 56.689242 14.839237 57.117552 14.724394 57.573699 14.724394 L 62.409905 14.724348 C 63.869575 14.724348 65.044312 15.899288 65.044312 17.358958 L 65.044719 23.685082 C 65.044719 25.144752 63.869327 26.319739 62.409657 26.319739 L 57.57345 26.319785 C 56.11378 26.319785 54.939043 25.144845 54.939043 23.685175 L 54.938636 17.359051 C 54.938636 16.355528 55.494388 15.486714 56.31585 15.041574 z "
        transform="rotate(29.041471)" />
+    <path
+       id="rect297"
+       style="fill:#3a0dcd;fill-opacity:1;stroke:none;stroke-width:0.264583;paint-order:stroke fill markers"
+       d="M -15.638378 50.326427 L -18.825767 50.45775 L -18.825885 70.610525 L -15.638328 70.479691 L -15.638378 50.326427 z "
+       transform="rotate(-71.07569)" />
   </g>
 </svg>
