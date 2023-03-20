@@ -5,7 +5,7 @@
 	align-items: center;
 	gap: 10px;
 }
-.horz {
+.wrapper {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -41,6 +41,14 @@ input[type="file"]::file-selector-button, button {
 	font-weight: bold;
 	font-size: 12px;
 	font-family: "Splatoon 2";
+	
+}
+input[type="file"]::file-selector-button:hover, button:hover {
+	background-image: repeating-linear-gradient(120deg, #4efc5c, #4efc5c 10px, #02cc12 10px, #02cc12 20px);
+	border-color: #4efc5c;
+	color: black;
+
+	
 }
 
 p, input[type="file"] {
@@ -48,3 +56,39 @@ p, input[type="file"] {
 	font-size: 12px;
 }
 
+.kitimage {
+	width: 512px;
+}
+.wpngroup {}
+.wpnimg {
+	width: 64px;
+	height: 64px;
+}
+.generatebtn {
+	width: 128px;
+	height: 48px;
+	font-size: 15px;
+	border-radius: 30px 20px;
+}
+.kitwrapper {
+	align-self: start;
+}
+@media (max-width: 1200px) {
+	.kitimage {
+		width: 30vw;
+	}
+	.wpngroup {
+	}
+	.wpnimg {
+		width: 32px;
+		height: 32px;
+	}
+}
+@media (orientation: portrait) {
+	.wrapper {
+		flex-direction: column;
+	}
+	.alignEnd {
+		align-self: unset;
+	}
+}
