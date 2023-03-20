@@ -41,6 +41,7 @@ def OtherWeaponDropdowns(label: String, weapon: SignallingRef[IO, OtherWeapon], 
   selectedFile: SignallingRef[IO, Option[String]], name: SignallingRef[IO, Option[String]], weapons: List[OtherWeapon]): Resource[IO, HtmlElement[IO]] = { 
     val curGames = weapon.map(_.games)
     div(
+      cls := "wpngroup",
       p(
         label,
       input.withSelf { self =>
@@ -54,13 +55,12 @@ def OtherWeaponDropdowns(label: String, weapon: SignallingRef[IO, OtherWeapon], 
       }),
       div(
         img(
+          cls := "wpnimg",
           src <-- (weapon.asInstanceOf[Signal[IO, OtherWeapon]], game, selectedFile).tupled.map((w, g, f) => 
               f match {
                 case Some(value) => value 
                 case None => "resources/" + otherPath(w, g)
               }),
-          widthAttr := 64,
-          heightAttr := 64,
           ),
         select.withSelf { self => 
           (
@@ -119,6 +119,7 @@ def MainWeaponDropdowns(weapon: SignallingRef[IO, Weapon], style: SignallingRef[
   val daWeapons = group.map(weapons(_))
   val styles = weapon.map(_.styles)
   div(
+    cls := "wpngroup",
     p(
     "Main name: ",
     input.withSelf { self =>
@@ -133,14 +134,13 @@ def MainWeaponDropdowns(weapon: SignallingRef[IO, Weapon], style: SignallingRef[
     ),
     div(
       img(
+        cls := "wpnimg",
         src <-- (weapon.asInstanceOf[Signal[IO, Weapon]], style, do2D, selectedFile).tupled.discrete.evalMap((w, s, d, f) =>
             f match {
               case None => weaponPath(w, s, d).map("resources/" + _)
               case Some(value) => IO.pure(value)
             }
             ).holdResource("resources/nothing.png"),
-        widthAttr := 64,
-        heightAttr := 64
         ),
       select.withSelf { self =>
         (
@@ -229,6 +229,7 @@ def brandImage(name: String): String = {
 def BrandDropdown(brand: SignallingRef[IO, String], brands: List[String]): Resource[IO, HtmlElement[IO]] = {
   div(
     img(
+      cls := "wpnimg",
       src <-- brand.map(brandImage _),
       widthAttr := 64,
       heightAttr := 64
@@ -347,7 +348,7 @@ object App extends IOWebApp {
       renderedKit <- SignallingRef[IO].of[String]("resources/nothing.png").toResource
       res <- {
         div(
-          cls := "horz",
+          cls := "wrapper",
           div(
             mainDropdowns,
             subDropdowns,
@@ -376,6 +377,7 @@ object App extends IOWebApp {
             cls := "vertical",
             button(
               `type` := "button",
+              cls := "generatebtn",
               "Generate!",
               onClick --> {
                 _.evalMap { _ =>
@@ -404,10 +406,9 @@ object App extends IOWebApp {
             download := "kit.png",
             img(
               src <-- renderedKit,
-              widthAttr := 512,
-              cls := "alignEnd"
+              cls := List("alignEnd", "kitimage")
             ),
-            cls := "alignEnd"
+            cls := "kitwrappper"
           )
         )
       }
