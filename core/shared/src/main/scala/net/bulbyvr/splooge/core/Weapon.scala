@@ -183,7 +183,9 @@ object Mains {
     },
     new MainBuilder("Dual Squelcher", Shooter) {
       Default += Splatoon1
+      Default += S3Custom
       Named("Custom") += Splatoon1
+      Named("Custom") += S3Custom
     },
     new MainBuilder("Dynamo Roller", Roller) {
       Default ++= AllGames
