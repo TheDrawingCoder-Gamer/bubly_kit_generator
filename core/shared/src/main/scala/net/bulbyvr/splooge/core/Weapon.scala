@@ -127,6 +127,7 @@ object Mains {
     new MainBuilder(".52 Gal", Shooter) {
       Default ++= AllGames
       Named("Deco") ++= OldGames
+      Named("Deco") += S3Custom
       Named("Kensa") += Splatoon2
       Named("Wicked") += S3Custom
     },
