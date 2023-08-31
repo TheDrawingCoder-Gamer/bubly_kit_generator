@@ -142,7 +142,7 @@ object Mains {
     },
     new MainBuilder("Ballpoint Splatling", Splatling) {
       Default ++= NewGames
-      Named("Nouveau") += Splatoon2
+      Named("Nouveau") ++= NewGames
     },
     new MainBuilder("Bamboozler 14", Charger) {
       Default ++= AllGames
@@ -163,7 +163,7 @@ object Mains {
     },
     new MainBuilder("Bloblobber", Slosher) {
       Default ++= NewGames
-      Named("Deco") += Splatoon2
+      Named("Deco") ++= NewGames
     },
     new MainBuilder("Carbon Roller", Roller) {
       Default ++= AllGames
@@ -178,6 +178,9 @@ object Mains {
       Named("Nouveau") ++= NewGames
       Named("Sheldon's Picks") += Splatoon2
     },
+    new MainBuilder("Dread Wringer", Slosher) {
+      Default += Splatoon3
+    },
     new MainBuilder("Dualie Squelchers", Dualies) {
       Default ++= NewGames
       Named("Custom") ++= NewGames
@@ -191,7 +194,7 @@ object Mains {
     new MainBuilder("Dynamo Roller", Roller) {
       Default ++= AllGames
       Named("Gold") += S3Custom
-      Named("Gold") ++= OldGames
+      Named("Gold") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += Splatoon1
       
@@ -220,12 +223,15 @@ object Mains {
     },
     new MainBuilder("Goo Tuber", Charger) {
       Default ++= NewGames
-      Named("Custom") += Splatoon2
+      Named("Custom") ++= NewGames
     },
     new MainBuilder("H-3 Nozzlenose", Shooter) {
       Default ++= AllGames
       Named("D") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
+    },
+    new MainBuilder("Heavy Edit Splatling", Splatling) {
+      Default += Splatoon3
     },
     new MainBuilder("Heavy Splatling", Splatling) {
       Default ++= AllGames
@@ -280,7 +286,7 @@ object Mains {
     },
     new MainBuilder("Octobrush", Brush) {
       Default ++= AllGames
-      Named("Nouveau") ++= OldGames
+      Named("Nouveau") ++= AllGames
       Named("Kensa") += Splatoon2
       add(heroWeapon)
     },
@@ -325,7 +331,7 @@ object Mains {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
       Named("Neo") += S3Custom
-      Named("Neo") ++= OldGames
+      Named("Neo") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Zekkofin") += S3Custom
     },
@@ -340,7 +346,7 @@ object Mains {
     new MainBuilder("Splat Brella", Brella) {
       Default ++= NewGames
       Named("Grizzco") ++= NewGames
-      Named("Sorella") += Splatoon2
+      Named("Sorella") ++= NewGames
       Named("Cherry") += S3Custom
       add(heroWeapon)
     },
@@ -357,6 +363,7 @@ object Mains {
       kensa += S3Custom
       kensa += Splatoon2
       Named("Zekkofin") += S3Custom
+      Named("Grizzco") += Splatoon3
       add(heroWeapon)
     },
     new MainBuilder("Splat Roller", Roller) {
@@ -446,6 +453,7 @@ object Mains {
     },
     new MainBuilder("Tri-Stringer", Bow) {
       Default += Splatoon3
+      Named("Inkline") += Splatoon3
       Named("Grizzco") += Splatoon3
     },
     new MainBuilder("Undercover Brella", Brella) {
