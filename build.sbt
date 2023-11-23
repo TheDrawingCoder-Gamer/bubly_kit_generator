@@ -134,7 +134,7 @@ lazy val web = project
       ).value
     },
     serve := {
-      fullBuild.value
+      fastBuild.value
       servePage(webTarget.value).unsafeRunSync()
     }
   )
