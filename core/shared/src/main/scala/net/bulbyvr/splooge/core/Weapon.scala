@@ -158,7 +158,7 @@ object Mains {
     new MainBuilder("Blaster", Blaster) {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
-      Named("Custom") ++= OldGames
+      Named("Custom") ++= AllGames
       add(heroWeapon)
     },
     new MainBuilder("Bloblobber", Slosher) {
@@ -292,6 +292,7 @@ object Mains {
     },
     new MainBuilder("Painbrush", Brush) {
       Default += Splatoon3
+      Named("Nouveau") += Splatoon3
     },
     new MainBuilder("Range Blaster", Blaster) {
       Default ++= AllGames
@@ -314,10 +315,12 @@ object Mains {
     },
     new MainBuilder("REEF-LUX 450", Bow) {
       Default += Splatoon3
+      Named("Deco") += Splatoon3
       Named("Gold") += S3Custom
     },
     new MainBuilder("S-BLAST", Blaster) {
       Default += Splatoon3
+      Named("91") += Splatoon3
     },
     new MainBuilder("Slosher", Slosher) {
       Default ++= AllGames
@@ -335,7 +338,10 @@ object Mains {
       Named("Kensa") += Splatoon2
       Named("Zekkofin") += S3Custom
     },
-    Simple3Weapon("Snipewriter", Charger),
+    new MainBuilder("Snipewriter", Charger) {
+      Default += Splatoon3
+      Named("Nouveau") += Splatoon3
+    },
     new MainBuilder("Splash-o-matic", Shooter) {
       Default ++= AllGames
       // 3.0.0 updated the sploosh & splash icons
@@ -357,6 +363,7 @@ object Mains {
     },
     new MainBuilder("Splat Dualies", Dualies) {
       Default ++= NewGames
+      Named("Enperry") += Splatoon3
       Named("Enperry") += S3Custom
       Named("Enperry") += Splatoon2
       val kensa = Named("Kensa")
@@ -378,6 +385,7 @@ object Mains {
     },
     new MainBuilder("Splatana Stamper", Splatana) {
       Default += Splatoon3
+      Named("Nouveau") += Splatoon3
       Named("Grizzco") += Splatoon3
     },
     new MainBuilder("Splatana Wiper", Splatana) {
@@ -428,7 +436,7 @@ object Mains {
     },
     new MainBuilder("Squeezer", Shooter) {
       Default ++= NewGames
-      Named("Foil") += Splatoon2
+      Named("Foil") ++= NewGames
     },
     new MainBuilder("Squiffer", Charger) {
       Default ++= AllGames
@@ -458,7 +466,7 @@ object Mains {
     },
     new MainBuilder("Undercover Brella", Brella) {
       Default ++= NewGames
-      Named("Sorella") += Splatoon2
+      Named("Sorella") ++= NewGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += S3Custom
     }
@@ -503,10 +511,12 @@ object Specials {
       "Kraken Royale" -> Seq(Splatoon3),
       ("Reefslider", Seq(Splatoon3, Splatoon1)),
       ("Splashdown", Seq(Splatoon3, Splatoon2)),
+      ("Splattercolor Screen", Seq(Splatoon3)),
       ("Super Chump", Seq(Splatoon3, S3Custom)),
       ("Tacticooler",  Seq(Splatoon3, Splatoon1)),
       ("Tenta Missiles", Seq(Splatoon3, Splatoon2, Splatoon1)),
       ("Triple Inkstrike", Seq(Splatoon3, Splatoon1)),
+      ("Triple Splashdown", Seq(Splatoon3)),
       ("Trizooka", Seq(
         Splatoon3,
         Splatoon2,
