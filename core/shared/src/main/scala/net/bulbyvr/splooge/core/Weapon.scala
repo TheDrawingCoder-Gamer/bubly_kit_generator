@@ -120,13 +120,13 @@ object Mains {
   }
   def eliter(name: String) = new MainBuilder(name, Charger) {
       Default ++= AllGames
-      Named("Custom") ++= OldGames
+      Named("Custom") ++= AllGames
   }
   lazy val groupedWeapons: Map[String, Seq[Weapon]] = { weapons.groupBy(_.group) }
   val weapons = WeaponList(
     new MainBuilder(".52 Gal", Shooter) {
       Default ++= AllGames
-      Named("Deco") ++= OldGames
+      Named("Deco") ++= AllGames
       Named("Deco") += S3Custom
       Named("Kensa") += Splatoon2
       Named("Wicked") += S3Custom
@@ -180,6 +180,10 @@ object Mains {
     },
     new MainBuilder("Dread Wringer", Slosher) {
       Default += Splatoon3
+      Named("D") += Splatoon3
+    },
+    new MainBuilder("Douser Dualies", Dualies) {
+      Default += Splatoon3
     },
     new MainBuilder("Dualie Squelchers", Dualies) {
       Default ++= NewGames
@@ -203,18 +207,18 @@ object Mains {
     eliter("E-Liter Scope"),
     new MainBuilder("Explosher", Slosher) {
       Default ++= NewGames
-      Named("Custom") += Splatoon2
+      Named("Custom") ++= NewGames
     },
     new MainBuilder("Flingza Roller", Roller) {
       Default ++= NewGames
-      Named("Foil") += Splatoon2
+      Named("Foil") ++= NewGames
       Named("Deco") += S3Custom
     },
     new MainBuilder("Glooga Dualies", Dualies) {
       Default ++= NewGames
       val deco = Named("Deco")
       deco += S3Custom
-      deco += Splatoon2
+      deco ++= NewGames
       val kensa = Named("Kensa")
       kensa += S3Custom
       kensa += Splatoon2
@@ -236,6 +240,7 @@ object Mains {
     new MainBuilder("Heavy Splatling", Splatling) {
       Default ++= AllGames
       Named("Deco") ++= AllGames
+      Named("Order") += Splatoon3
       Named("Sheldon's Picks") ++= OldGames
       add(heroWeapon)
     },
@@ -262,6 +267,7 @@ object Mains {
     new MainBuilder("Luna Blaster", Blaster) {
       Default ++= AllGames
       Named("Neo") ++= AllGames
+      Named("Order") += Splatoon3
       Named("Kensa") += Splatoon2
       Named("Emberz") += S3Custom
       Named("Pastel") += S3Custom
@@ -282,11 +288,12 @@ object Mains {
     },
     new MainBuilder("Nautilus", Splatling) {
       Default ++= NewGames
-      Named("Gold") += Splatoon2
+      Named("Gold") ++= NewGames
     },
     new MainBuilder("Octobrush", Brush) {
       Default ++= AllGames
       Named("Nouveau") ++= AllGames
+      Named("Order") += Splatoon3
       Named("Kensa") += Splatoon2
       add(heroWeapon)
     },
@@ -313,6 +320,9 @@ object Mains {
       Named("Deco") ++= AllGames
       Named("Wicked") += S3Custom
     },
+    new MainBuilder("Recycled Brella", Brella) {
+      Default += Splatoon3
+    },
     new MainBuilder("REEF-LUX 450", Bow) {
       Default += Splatoon3
       Named("Deco") += Splatoon3
@@ -325,6 +335,7 @@ object Mains {
     new MainBuilder("Slosher", Slosher) {
       Default ++= AllGames
       Named("Deco") ++= AllGames
+      Named("Order") += Splatoon3
       Named("Sheldon's Picks") ++= OldGames
       Named("Zekkofin") += S3Custom
       Named("Melon") += S3Custom
@@ -352,12 +363,14 @@ object Mains {
     new MainBuilder("Splat Brella", Brella) {
       Default ++= NewGames
       Named("Grizzco") ++= NewGames
+      Named("Order") += Splatoon3
       Named("Sorella") ++= NewGames
       Named("Cherry") += S3Custom
       add(heroWeapon)
     },
     new MainBuilder("Splat Charger", Charger) {
       splatchargerShared(this)
+      Named("Order") += Splatoon3
       Named("Pastel") += S3Custom
       add(heroWeapon) 
     },
@@ -369,6 +382,7 @@ object Mains {
       val kensa = Named("Kensa")
       kensa += S3Custom
       kensa += Splatoon2
+      Named("Order") += Splatoon3
       Named("Zekkofin") += S3Custom
       Named("Grizzco") += Splatoon3
       add(heroWeapon)
@@ -376,6 +390,7 @@ object Mains {
     new MainBuilder("Splat Roller", Roller) {
       Default ++= AllGames
       Named("Hero") ++= OldGames
+      Named("Order") += Splatoon3
       val krakon = Named("Krak-on")
       krakon += S3Custom
       krakon ++= AllGames
@@ -386,6 +401,7 @@ object Mains {
     new MainBuilder("Splatana Stamper", Splatana) {
       Default += Splatoon3
       Named("Nouveau") += Splatoon3
+      Named("Order") += Splatoon3
       Named("Grizzco") += Splatoon3
     },
     new MainBuilder("Splatana Wiper", Splatana) {
@@ -400,13 +416,14 @@ object Mains {
       val kensa = Named("Kensa")
       kensa += S3Custom
       kensa += Splatoon2
+      Named("Order") += Splatoon3
       Named("Hero") ++= AllGames
       Named("Sheldon's Picks") += Splatoon1
       Named("Tentatek") ++= AllGames
       // BEST SPLATTERSHOT :heart:
       val octo = Named("Octo")
       octo += S3Custom
-      octo ++= OldGames
+      octo ++= AllGames
       Named("Zekkofin") += S3Custom
       Named("Zekkofin 2") += S3Custom
     },
@@ -440,7 +457,7 @@ object Mains {
     },
     new MainBuilder("Squiffer", Charger) {
       Default ++= AllGames
-      Named("New") ++= OldGames
+      Named("New") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },
     new MainBuilder("Tenta Brella", Brella) {
@@ -463,6 +480,7 @@ object Mains {
       Default += Splatoon3
       Named("Inkline") += Splatoon3
       Named("Grizzco") += Splatoon3
+      Named("Order") += Splatoon3
     },
     new MainBuilder("Undercover Brella", Brella) {
       Default ++= NewGames
