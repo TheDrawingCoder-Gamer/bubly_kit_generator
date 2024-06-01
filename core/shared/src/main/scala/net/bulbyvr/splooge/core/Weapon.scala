@@ -147,7 +147,7 @@ object Mains {
     new MainBuilder("Bamboozler 14", Charger) {
       Default ++= AllGames
       Named("Grizzco") ++= NewGames
-      Named("Cuttlegear") ++= OldGames
+      Named("Cuttlegear") ++= AllGames
       Named("Sheldon's Picks") ++= OldGames
     },
     new MainBuilder("Big Swig", Roller) {
@@ -184,6 +184,7 @@ object Mains {
     },
     new MainBuilder("Douser Dualies", Dualies) {
       Default += Splatoon3
+      Named("Custom") += Splatoon3
     },
     new MainBuilder("Dualie Squelchers", Dualies) {
       Default ++= NewGames
@@ -236,6 +237,7 @@ object Mains {
     },
     new MainBuilder("Heavy Edit Splatling", Splatling) {
       Default += Splatoon3
+      Named("Nouveau") += Splatoon3
     },
     new MainBuilder("Heavy Splatling", Splatling) {
       Default ++= AllGames
@@ -246,7 +248,7 @@ object Mains {
     },
     new MainBuilder("Hydra Splatling", Splatling) {
       Default ++= AllGames
-      Named("Custom") ++= OldGames
+      Named("Custom") ++= AllGames
       Named("Copper") += S3Custom
       Named("Gold") += S3Custom
     },
@@ -281,6 +283,10 @@ object Mains {
       Named("Zekkofin") += S3Custom
       Named("Leaf") += S3Custom
     },
+    new MainBuilder("Mint Decavitator", Splatana) {
+      Default += Splatoon3
+      Named("Neo") += Splatoon3
+    },
     new MainBuilder("N-Zap", Shooter) {
       Default ++= AllGames
       Named("89") ++= Seq(Splatoon3, S3Custom, Splatoon2, Splatoon1)
@@ -303,10 +309,11 @@ object Mains {
     },
     new MainBuilder("Range Blaster", Blaster) {
       Default ++= AllGames
-      Named("Custom") ++= OldGames
+      Named("Custom") ++= AllGames
       Named("Sheldon's Picks") += S3Custom
       Named("Sheldon's Picks") ++= OldGames
       Named("Zekkofin") += S3Custom
+      Named("Cherry") += S3Custom
     },
     new MainBuilder("Rapid Blaster", Blaster) {
       Default ++= AllGames
@@ -322,6 +329,7 @@ object Mains {
     },
     new MainBuilder("Recycled Brella", Brella) {
       Default += Splatoon3
+      Named("Cuttlegear") += Splatoon3
     },
     new MainBuilder("REEF-LUX 450", Bow) {
       Default += Splatoon3
@@ -426,6 +434,7 @@ object Mains {
       octo ++= AllGames
       Named("Zekkofin") += S3Custom
       Named("Zekkofin 2") += S3Custom
+      Named("Zekkofin 3") += S3Custom
     },
     new MainBuilder("Splattershot Jr", Shooter){
       Default ++= AllGames
@@ -481,12 +490,17 @@ object Mains {
       Named("Inkline") += Splatoon3
       Named("Grizzco") += Splatoon3
       Named("Order") += Splatoon3
+      Named("Emberz") += S3Custom
     },
     new MainBuilder("Undercover Brella", Brella) {
       Default ++= NewGames
       Named("Sorella") ++= NewGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += S3Custom
+    },
+    new MainBuilder("Wellstring V", Bow) {
+      Default += Splatoon3
+      Named("Custom") += Splatoon3
     }
   )
 }
