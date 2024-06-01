@@ -202,6 +202,7 @@ object Mains {
       Named("Gold") ++= AllGames
       Named("Kensa") += Splatoon2
       Named("Sheldon's Picks") += Splatoon1
+      Named("Grizzco") += Splatoon3
       
     },
     eliter("E-Liter"),
