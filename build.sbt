@@ -1,6 +1,8 @@
+import java.awt.Color
 import sbt.io.ExtensionFilter
 import java.awt.image.BufferedImage
 import java.nio.file.Files
+import scala.collection.JavaConverters._
 
 val scala3Version = "3.2.2"
 
@@ -49,7 +51,6 @@ lazy val swing = project
     name := "splooge3",
     version := "0.1.0-SNAPSHOT",
     Compile / run / fork := true,
-    Compile / resourceDirectory := file("resources"),
     libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "3.0.0",
     libraryDependencies += "org.apache.xmlgraphics" % "batik" % "1.15",
     libraryDependencies += "org.apache.xmlgraphics" % "batik-swing" % "1.15",
@@ -57,7 +58,7 @@ lazy val swing = project
     libraryDependencies += "com.google.jimfs" % "jimfs" % "1.2",
     libraryDependencies += "org.typelevel" %% "cats-effect" % "3.4.8",
     Compile / rasterizeSvgs := 
-     { rasterize( file("svgweapons"), (Compile / resourceManaged).value, 256, 256) },
+     { rasterizeSvgFiles((Compile / resourceManaged).value) },
     Compile / resourceGenerators += (Compile / rasterizeSvgs),
 
   )
@@ -70,9 +71,8 @@ lazy val swingio = project
     scalacOptions += "-source:future",
     libraryDependencies += "io.github.thedrawingcoder-gamer" %% "swing-io" % "0.1-c82eab4-SNAPSHOT",
     libraryDependencies += "org.typelevel" %% "cats-effect" % "3.4.8",
-    Compile / resourceDirectory := file("resources"),
     Compile / rasterizeSvgs := 
-     { rasterize( file("svgweapons"), (Compile / resourceManaged).value, 256, 256) },
+     { rasterizeSvgFiles(( Compile / resourceManaged).value) },
     Compile / resourceGenerators += (Compile / rasterizeSvgs),
     
   )
@@ -91,12 +91,26 @@ def tearDownImpl(targetDir: File) = {
     if (Files.exists(targetDir.toPath))
       IO.delete(targetDir)
 }
+
+def rasterizeSvgFiles(targetDir: File): Seq[File] = {
+    rasterizeSvgImpl(targetDir)
+    Files.walk(targetDir.asPath).iterator().asScala.map(_.toFile()).toSeq
+}
+
+val inkColor = new Color(58, 13, 205)
+def rasterizeSvgImpl(targetDir: File) = {
+    if (!Files.exists(targetDir.toPath))
+      IO.createDirectory(targetDir)
+    IO.copyDirectory(file("assets/resources"), targetDir)
+    rasterize(file("assets/svgweapons"), targetDir, 256, 256)
+    rasterize(file("assets/coloredweapons"), targetDir, 256, 256, getCss(inkColor))
+    IO.copyDirectory(file("assets/coloredweapons"), targetDir)
+}
 def copyImpl(linkDir: File, targetDir: File, baseDir: File) = {
     if (!Files.exists(targetDir.toPath))
       IO.createDirectory(targetDir)
     IO.copyDirectory(linkDir, targetDir)
-    IO.copyDirectory(file("resources"), new File(targetDir, "resources"))
-    rasterize(file("svgweapons"), new File(targetDir, "resources"), 256, 256)
+    rasterizeSvgImpl(new File(targetDir, "resources"))
     IO.copyDirectory(new File(baseDir, "web"), targetDir)
   }
 ThisBuild / resolvers +=
@@ -150,8 +164,23 @@ def loadDocument(url : URL) = {
   val document = f.createSVGDocument("", stream) 
   document
 }
-def rasterize(source: File, file: File, w: Float, h: Float): Seq[File] = {
-  import org.apache.batik.transcoder.image.ImageTranscoder   
+
+def getCss(color: Color): String = {
+  val magicColor = "#" + (color.getRGB() & 0xFFFFFF).toHexString
+                        s"""
+                          |.ink {
+                          |  fill: $magicColor !important;
+                          |}
+                          |.inkstroke {
+                          |  stroke: $magicColor !important;
+                          |}
+                          |#ink stop {
+                          |  stop-color: $magicColor;
+                          |}
+                         """.stripMargin
+}
+def rasterize(source: File, file: File, w: Float, h: Float, extraCss: String = ""): Seq[File] = {
+  import org.apache.batik.transcoder.image.{ImageTranscoder, PNGTranscoder}
   import org.apache.batik.transcoder.{TranscoderInput, TranscoderOutput, TranscodingHints, XMLAbstractTranscoder, SVGAbstractTranscoder}
   import org.apache.batik.anim.dom.SVGDOMImplementation
   import org.apache.batik.util.SVGConstants
@@ -170,46 +199,44 @@ def rasterize(source: File, file: File, w: Float, h: Float): Seq[File] = {
       color-rendering: optimizeQuality;
       image-rendering: optimizeQuality;
       }
-      """
+      """ + extraCss
     IO.createDirectory(file)
-    Using(Jimfs.newFileSystem(Configuration.unix())) { fs =>
-  
-      // val path = fs.getPath("css.css")
-      // Files.writeString(path, css)
-      Path.selectSubpaths(source, new ExtensionFilter("svg")).unzip._1.toSeq.map { svg =>
-        val daSvg = loadDocument(svg.asURL)
-        var daImage: Option[BufferedImage] = None
-        val hints = new TranscodingHints()
-        hints.put(XMLAbstractTranscoder.KEY_XML_PARSER_VALIDATING, java.lang.Boolean.FALSE)
-        hints.put(XMLAbstractTranscoder.KEY_DOM_IMPLEMENTATION, SVGDOMImplementation.getDOMImplementation())
-        hints.put(XMLAbstractTranscoder.KEY_DOCUMENT_ELEMENT_NAMESPACE_URI, SVGConstants.SVG_NAMESPACE_URI)
-        // hints.put(SVGAbstractTranscoder.KEY_USER_STYLESHEET_URI, path.toUri().toString())
-        hints.put(SVGAbstractTranscoder.KEY_WIDTH, w)
-        hints.put(SVGAbstractTranscoder.KEY_HEIGHT, h)
 
-        val input = new TranscoderInput(daSvg)
+    val cssFile = new File(file, "egg.css")
+    Files.writeString(cssFile.asPath, css)
+    val out = Path.selectSubpaths(source, new ExtensionFilter("svg")).unzip._1.map { svg =>
+      val daSvg = loadDocument(svg.asURL)
+      var daImage: Option[BufferedImage] = None
+      val hints = new TranscodingHints()
+      hints.put(XMLAbstractTranscoder.KEY_XML_PARSER_VALIDATING, java.lang.Boolean.FALSE)
+      hints.put(XMLAbstractTranscoder.KEY_DOM_IMPLEMENTATION, SVGDOMImplementation.getDOMImplementation())
+      hints.put(XMLAbstractTranscoder.KEY_DOCUMENT_ELEMENT_NAMESPACE_URI, SVGConstants.SVG_NAMESPACE_URI)
+      hints.put(SVGAbstractTranscoder.KEY_USER_STYLESHEET_URI, cssFile.toURI().toString())
+      hints.put(SVGAbstractTranscoder.KEY_WIDTH, w)
+      hints.put(SVGAbstractTranscoder.KEY_HEIGHT, h)
+
+      val input = new TranscoderInput(daSvg)
+     
+      val t = new PNGTranscoder()
+
+      val base = svg.base
+      val res = Path.rebase(source, file)(new File(svg.getParentFile, base + ".png")).get
+      IO.createDirectory(res.getParentFile())
+
+      val bytestream = new java.io.FileOutputStream(res)
+      val output = new TranscoderOutput(bytestream)
+
+      t.setTranscodingHints(hints)
+      t.transcode(input, output)
+      
+      
        
-        val t = new ImageTranscoder() {
-          override def createImage(w: Int, h: Int): BufferedImage = {
-            new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
-          }
-          override def writeImage(image: BufferedImage, out: TranscoderOutput): Unit = {
-            daImage = Option(image)
-          }
-        }
-        t.setTranscodingHints(hints)
-        t.transcode(input, new TranscoderOutput())
+      res
+      
+    }.toSeq
 
-        val base = svg.base
-        val res = Path.rebase(source, file)(new File(svg.getParentFile, base + ".png")).get
-        IO.createDirectory(res.getParentFile())
-        daImage.foreach(it => ImageIO.write(it, "png", res))
-         
-         
-        res
-        
-      }
-    }.get
+    cssFile.delete()
+    out 
 
   } else {
     Seq()
