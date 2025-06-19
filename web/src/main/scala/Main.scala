@@ -23,19 +23,16 @@ import scala.concurrent.Future
 import scala.scalajs.js
 import cats.Show
 
-def GameDropdown(game: SignallingRef[IO, GameStyle], games: Signal[IO, Seq[GameStyle]], image: SignallingRef[IO, Option[String]]): Resource[IO, HtmlElement[IO]] = {
-  IO.pure(game).toResource.flatMap { game =>
-    select.withSelf { self => 
-        (
-          children <-- games.map(_.traverse(g => option(value := g.name, g.name)).map(_.toList)),
-          value <-- game.map(_.name),
-          onChange --> {
-            _.evalMap(_ => self.value.get).evalMap[IO, Option[GameStyle]](it => games.map(_.find(_.name == it)).get).unNone.foreach(game.set)
-          }
-          )
-      }
-
-  }
+def GameDropdown(game: SignallingRef[IO, GameStyle], games: Signal[IO, Seq[GameStyle]]): Resource[IO, HtmlElement[IO]] = {
+  select.withSelf { self =>
+      (
+        children <-- games.map(_.traverse(g => option(value := g.name, g.name)).map(_.toList)),
+        value <-- game.map(_.name),
+        onChange --> {
+          _.evalMap(_ => self.value.get).evalMap[IO, Option[GameStyle]](it => games.map(_.find(_.name == it)).get).unNone.foreach(game.set)
+        }
+        )
+    }
 }
 def OtherWeaponDropdowns(label: String, weapon: SignallingRef[IO, OtherWeapon], game: SignallingRef[IO, GameStyle], 
   selectedFile: SignallingRef[IO, Option[String]], name: SignallingRef[IO, Option[String]], weapons: List[OtherWeapon]): Resource[IO, HtmlElement[IO]] = { 
@@ -56,11 +53,12 @@ def OtherWeaponDropdowns(label: String, weapon: SignallingRef[IO, OtherWeapon], 
       div(
         img(
           cls := "wpnimg",
-          src <-- (weapon.asInstanceOf[Signal[IO, OtherWeapon]], game, selectedFile).tupled.map((w, g, f) => 
+          src <-- (weapon.asInstanceOf[Signal[IO, OtherWeapon]], game, selectedFile).tupled.discrete.map((w, g, f) =>
               f match {
-                case Some(value) => value 
+                case Some(value) => value
                 case None => "resources/" + otherPath(w, g)
-              }),
+              }
+          ).holdResource("resources/nothing.png"),
           ),
         select.withSelf { self => 
           (
@@ -71,7 +69,7 @@ def OtherWeaponDropdowns(label: String, weapon: SignallingRef[IO, OtherWeapon], 
             }
             )
         },
-        GameDropdown(game, curGames, selectedFile),
+        GameDropdown(game, curGames),
         ImageGroup(selectedFile),
         )
     )
@@ -201,6 +199,8 @@ def BuildMainWeaponDropdowns: IO[(SignallingRef[IO, Weapon], SignallingRef[IO, W
 }
 def OnlyGameDropdown[T <: GameStyle](game: SignallingRef[IO, T], games: List[T]): Resource[IO, HtmlElement[IO]] = {
     div(
+      p(
+        "Game style:",
       select.withSelf { self =>
         (
         games.map(g => option(value := g.name, g.longName)),
@@ -210,6 +210,7 @@ def OnlyGameDropdown[T <: GameStyle](game: SignallingRef[IO, T], games: List[T])
         }
           )
       }
+      )
       )
 }
 def BuildGameDropdown[T <: GameStyle](games: List[T]): IO[(SignallingRef[IO, T], Resource[IO, HtmlElement[IO]])] = {
@@ -230,7 +231,7 @@ def BrandDropdown(brand: SignallingRef[IO, String], brands: List[String]): Resou
   div(
     img(
       cls := "wpnimg",
-      src <-- brand.map(brandImage _),
+      src <-- brand.map(brandImage),
       widthAttr := 64,
       heightAttr := 64
       ),
@@ -256,8 +257,8 @@ def pathExists(path: String): IO[Boolean] = {
   IO.fromPromise(IO(Fetch.fetch(path, new RequestInit {
     method = HttpMethod.HEAD 
   }).`then`(
-      (res) => res.ok,
-      (_) => false
+      res => res.ok,
+      _ => false
     )))
 }
 def weaponPath(weapon: Weapon, style : WeaponStyle, twodim : Boolean) : IO[String] = {
@@ -287,11 +288,11 @@ def otherPath(weapon: OtherWeapon, game: GameStyle): String = {
 def promiseFileReader[A](action: FileReader => Unit): IO[A] = {
   IO.async_[A] { cb =>
     val reader = new FileReader()
-    reader.onloadend = (event) => {
+    reader.onloadend = _ => {
       val result = reader.result.asInstanceOf[A]
       cb(Right(result))
     }
-    reader.onerror = (error) => {
+    reader.onerror = error => {
       println(error)
       cb(Left(js.JavaScriptException(error)))
     }
@@ -323,7 +324,7 @@ def renderKit(mainWeapon: Weapon, mainStyle: WeaponStyle, sub: OtherWeapon, subG
   val daSubName = subName.getOrElse(sub.name)
   val daSpName = spName.getOrElse(special.name)
   for {
-    mainImg <- selectedMain.map(Image.fromDataURL _).getOrElse(weaponPath(mainWeapon, mainStyle, twodim) >>= Image.loadFromResource)
+    mainImg <- selectedMain.map(Image.fromDataURL).getOrElse(weaponPath(mainWeapon, mainStyle, twodim) >>= Image.loadFromResource)
     subImg <- selectedSub.map(Image.fromDataURL).getOrElse(Image.loadFromResource(otherPath(sub, subGame)))
     spImg <- selectedSpecial.map(Image.fromDataURL).getOrElse(Image.loadFromResource(otherPath(special, spGame)))
     brandImg <- brandName.traverse(it => Image.loadFromResource(s"brands/${it}.png"))
@@ -361,7 +362,7 @@ object App extends IOWebApp {
               tpe := "text",
               value <-- spPoints.map(_.getOrElse("")),
               onChange --> {
-                _.evalMap(_ => self.value.get).map(it => if (it == "") None else Some(it)).foreach(spPoints.set _)
+                _.evalMap(_ => self.value.get).map(it => if (it == "") None else Some(it)).foreach(spPoints.set)
               }
               )}
             ),

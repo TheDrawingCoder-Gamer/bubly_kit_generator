@@ -30,6 +30,11 @@ object S3Custom extends GameStyle {
   val longName = "Splatoon 3 (Custom)"
 }
 
+object MSPaint extends GameStyle {
+  val name = "ms_paint"
+  val longName = "MS Paint"
+}
+
 enum StyleName {
   case Named(name: String)
   case Empty
